@@ -1,0 +1,10 @@
+{
+  "name": "logseq-plugin",
+  "version": "0.1.0",
+  "description": "A Logseq plugin",
+  "author": "John Doe",
+  "main": "index.js",
+  "logseq": {
+    "id": "logseq-plugin"
+  }
+}
