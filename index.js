@@ -18,9 +18,10 @@ async function autoTag(block) {
 
   // Loop over pages and extract tags
   const tags = [];
-  for (const page of pages) {
-    const pageEntity = await logseq.Editor.getPage(page);
-    if (pageEntity && pageEntity.properties && pageEntity.properties.tags) {
+  const tagPromises = pages.map((page) => logseq.Editor.getPage(page));
+  const pageEntities = await Promise.all(tagPromises);
+  for (const pageEntity of pageEntities) {
+    if (pageEntity?.properties?.tags) {
       // Handle different formats of tags (array or single value)
       const pageTags = Array.isArray(pageEntity.properties.tags)
         ? pageEntity.properties.tags
@@ -41,14 +42,14 @@ async function autoTag(block) {
   console.debug(`logseq-auto-tagger: autoTag: tags=${uniqueTags.join(", ")}`);
 
   // Update content with tags
-  isUpdated = false;
+  let isUpdated = false;
   for (const tag of uniqueTags) {
     if (content.includes(`#[[${tag}]]`) || content.includes(`#${tag}`))
       continue;
     content += ` ${tag.includes(" ") ? `#[[${tag}]]` : `#${tag}`}`;
     isUpdated = true;
   }
-  if (isUpdated) logseq.Editor.updateBlock(block.uuid, content);
+  if (isUpdated) await logseq.Editor.updateBlock(block.uuid, content);
 }
 
 async function autoLink(block, allPages) {
@@ -67,7 +68,6 @@ async function autoLink(block, allPages) {
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
     const regex = new RegExp(`(?<=^|\\s)${pageName}(?=\\s|$|[,.;:!?)])`, "gi");
     content = content.replace(regex, `[[${page.name}]]`);
-    content.replaceAll(page.name);
   }
 
   if (content !== block.content) {
@@ -77,33 +77,37 @@ async function autoLink(block, allPages) {
 
 async function main() {
   const allPages = await logseq.Editor.getAllPages();
+  let currentBlock;
 
-  logseq.Editor.registerSlashCommand("Auto tag", () => {
+  logseq.Editor.registerSlashCommand("Auto tag", async () => {
     console.debug("logseq-auto-tagger: main: slash command Auto tag");
-    return autoTag(currentBlock);
+    await autoTag(currentBlock);
   });
 
-  logseq.Editor.registerSlashCommand("Auto link", () => {
+  logseq.Editor.registerSlashCommand("Auto link", async () => {
     console.debug("logseq-auto-tagger: main: slash command Auto link");
-    return autoLink(currentBlock, allPages);
+    await autoLink(currentBlock, allPages);
   });
 
-  logseq.DB.onChanged(({ blocks, txData, txMeta }) => {
+  logseq.DB.onChanged(async ({ blocks, txData, txMeta }) => {
     if (txMeta?.["skipRefresh?"] === true) return;
-    if (txMeta.outlinerOp == "insert-blocks") {
-      console.debug("logseq-auto-tagger: main: block inserted (ENTER pressed)");
-      autoLink(currentBlock, allPages).then(async () => {
-        const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        autoTag(updatedBlock);
-      });
-    } else {
-      console.debug("logseq-auto-tagger: main: db changed");
+    if (txMeta.outlinerOp == "save-block") {
+      console.debug("logseq-auto-tagger: main: block changed");
       currentBlock = blocks.find((block) => !block.file);
+    }
+    if (txMeta.outlinerOp == "insert-blocks" && currentBlock) {
+      console.debug("logseq-auto-tagger: main: block inserted (ENTER pressed)");
+      try {
+        await autoLink(currentBlock, allPages);
+        const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
+        await autoTag(updatedBlock);
+      } catch (error) {
+        console.error("Error processing block:", error);
+      }
     }
   });
 
   console.debug("logseq-auto-tagger: main: plugin loaded");
 }
 
-let currentBlock;
 logseq.ready(main).catch(console.error);
