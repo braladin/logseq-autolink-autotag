@@ -1,12 +1,8 @@
-async function autoTag(block = undefined) {
-  // Get the block's UUID and content
-  const { uuid, content } = block
-    ? { uuid: block.uuid, content: block.content }
-    : await logseq.Editor.getCurrentBlock();
+async function autoTag(block) {
+  let content = block.content;
 
   // Log block details
-  console.debug(`logseq-auto-tagger: Block UUID: ${uuid}`);
-  console.debug(`logseq-auto-tagger: Block content: ${content}`);
+  console.debug(`logseq-auto-tagger: autoTag: block.content=${content}`);
 
   // Extract linked pages from content
   const pages = content
@@ -14,13 +10,11 @@ async function autoTag(block = undefined) {
     ?.map((page) => page.slice(2, -2));
 
   if (!pages || pages.length === 0) {
-    console.debug("logseq-auto-tagger: No block pages found");
+    console.debug("logseq-auto-tagger: autoTag: pages=[]");
     return;
   }
 
-  console.debug(
-    `logseq-auto-tagger: Found ${pages.length} pages: ${pages.join(", ")}`,
-  );
+  console.debug(`logseq-auto-tagger: autoTag: pages=${pages.join(", ")}`);
 
   // Loop over pages and extract tags
   const tags = [];
@@ -40,43 +34,75 @@ async function autoTag(block = undefined) {
 
   // Log found tags
   if (!uniqueTags || uniqueTags.length === 0) {
-    console.debug("logseq-auto-tagger: No block tags found");
+    console.debug("logseq-auto-tagger: autoTag: tags=[]");
     return;
   }
 
-  console.debug(
-    `logseq-auto-tagger: Found ${uniqueTags.length} tags: ${uniqueTags.join(", ")}`,
-  );
+  console.debug(`logseq-auto-tagger: autoTag: tags=${uniqueTags.join(", ")}`);
 
   // Update content with tags
-  let newContent = content;
+  isUpdated = false;
   for (const tag of uniqueTags) {
     if (content.includes(`#[[${tag}]]`) || content.includes(`#${tag}`))
       continue;
-    newContent += ` ${tag.includes(" ") ? `#[[${tag}]]` : `#${tag}`}`;
+    content += ` ${tag.includes(" ") ? `#[[${tag}]]` : `#${tag}`}`;
+    isUpdated = true;
   }
-  if (newContent != content) logseq.Editor.updateBlock(uuid, newContent);
+  if (isUpdated) logseq.Editor.updateBlock(block.uuid, content);
 }
 
-function main() {
+async function autoLink(block, allPages) {
+  let content = block.content;
+
+  // Log block details
+  console.debug(`logseq-auto-tagger: autoLink: block.content=${content}`);
+
+  const sortedPages = [...allPages].sort(
+    (a, b) => (b.name?.length || 0) - (a.name?.length || 0),
+  );
+
+  for (const page of sortedPages) {
+    // Create a regex pattern from the page name, escaping special characters
+    const pageName = page.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
+    const regex = new RegExp(`(?<=^|\\s)${pageName}(?=\\s|$|[,.;:!?)])`, "gi");
+    content = content.replace(regex, `[[${page.name}]]`);
+    content.replaceAll(page.name);
+  }
+
+  if (content !== block.content) {
+    await logseq.Editor.updateBlock(block.uuid, content);
+  }
+}
+
+async function main() {
+  const allPages = await logseq.Editor.getAllPages();
+
   logseq.Editor.registerSlashCommand("Auto tag", () => {
-    return autoTag();
+    console.debug("logseq-auto-tagger: main: slash command Auto tag");
+    return autoTag(currentBlock);
+  });
+
+  logseq.Editor.registerSlashCommand("Auto link", () => {
+    console.debug("logseq-auto-tagger: main: slash command Auto link");
+    return autoLink(currentBlock, allPages);
   });
 
   logseq.DB.onChanged(({ blocks, txData, txMeta }) => {
     if (txMeta?.["skipRefresh?"] === true) return;
     if (txMeta.outlinerOp == "insert-blocks") {
-      console.debug(
-        "logseq-auto-tagger: Block insert detected (ENTER pressed)",
-      );
-      autoTag(currentBlock);
+      console.debug("logseq-auto-tagger: main: block inserted (ENTER pressed)");
+      autoLink(currentBlock, allPages).then(async () => {
+        const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
+        autoTag(updatedBlock);
+      });
     } else {
-      console.debug("logseq-auto-tagger: DB change detected");
+      console.debug("logseq-auto-tagger: main: db changed");
       currentBlock = blocks.find((block) => !block.file);
     }
   });
 
-  console.debug("logseq-auto-tagger: plugin loaded");
+  console.debug("logseq-auto-tagger: main: plugin loaded");
 }
 
 let currentBlock;
