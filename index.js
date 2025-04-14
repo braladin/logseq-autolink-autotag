@@ -89,21 +89,22 @@ async function main() {
     await autoLink(currentBlock, allPages);
   });
 
-  logseq.DB.onChanged(async ({ blocks, txData, txMeta }) => {
-    if (txMeta?.["skipRefresh?"] === true) return;
-    if (txMeta.outlinerOp == "save-block") {
-      console.debug("logseq-auto-tagger: main: block changed");
-      currentBlock = blocks.find((block) => !block.file);
-    }
-    if (txMeta.outlinerOp == "insert-blocks" && currentBlock) {
-      console.debug("logseq-auto-tagger: main: block inserted (ENTER pressed)");
+  window.parent.document.addEventListener("keyup", async (event) => {
+    if (event.code === "Enter") {
+      console.debug(
+        "logseq-auto-tagger: main: Enter pressed, processing block",
+      );
       try {
+        currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
         await autoLink(currentBlock, allPages);
         const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
         await autoTag(updatedBlock);
       } catch (error) {
         console.error("Error processing block:", error);
       }
+    } else {
+      console.debug("logseq-auto-tagger: main: Block updated");
+      currentBlock = await logseq.Editor.getCurrentBlock();
     }
   });
 
