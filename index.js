@@ -119,5 +119,30 @@ async function main() {
 
   console.debug("logseq-auto-tagger: main: plugin loaded");
 }
-
+// TODO skjeri
 logseq.ready(main).catch(console.error);
+
+/* TODO
+
+ci
+- [x] add release-please github action
+
+feat
+- [x] auto-tag blocks based on linked pages by pressing enter
+- [x] auto-tag by slash command
+- [ ] auto-tag by keybinding
+- [x] auto-link pages by pressing enter
+- [x] auto-link by slash command
+- [ ] auto-link by keybinding
+- [ ] auto-link first occurance only
+
+fix
+- [x] add guards to process keyup events only when editing a block
+- [ ] auto-link newly created pages
+- [ ] remove parent tags if child tags are present
+
+perf
+- [x] use promise.all to fetch pages in parallel
+- [x] use keyup event instead of logseq.db.onchange to improve responsiveness
+
+*/
