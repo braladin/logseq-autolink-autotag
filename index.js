@@ -90,7 +90,14 @@ async function main() {
   });
 
   window.parent.document.addEventListener("keyup", async (event) => {
-    if (event.code === "Enter") {
+    // Only process keyup events that occur when editing blocks
+    if (
+      event?.target?.tagName.toLowerCase() !== "textarea" ||
+      !event.target.getAttribute("aria-label") === "editing block"
+    )
+      return;
+
+    if (event.code === "Enter" && currentBlock) {
       console.debug(
         "logseq-auto-tagger: main: Enter pressed, processing block",
       );
@@ -101,6 +108,8 @@ async function main() {
         await autoTag(updatedBlock);
       } catch (error) {
         console.error("Error processing block:", error);
+      } finally {
+        currentBlock = undefined;
       }
     } else {
       console.debug("logseq-auto-tagger: main: Block updated");
