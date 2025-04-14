@@ -1,11 +1,11 @@
 {
-  "name": "logseq-plugin",
+  "name": "logseq-autolink-autotag",
   "version": "0.1.0",
-  "description": "A Logseq plugin",
-  "author": "John Doe",
+  "description": "A Logseq plugin to auto-link pages and auto-tag blocks",
+  "author": "braladin",
   "main": "index.js",
   "logseq": {
-    "id": "logseq-plugin"
+    "id": "logseq-autolink-autotag"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
