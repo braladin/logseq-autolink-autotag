@@ -14,6 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
           release-type: node
+
+      # The following steps create and attach the release zip
+      - name: Checkout code
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
+
+      - name: Create release ZIP file
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          VERSION=${{ steps.release.outputs.tag_name }}
+          ZIP_NAME="logseq-autolink-autotag-${VERSION}.zip"
+          echo "Creating ${ZIP_NAME}..."
+          zip -r ${ZIP_NAME} index.js package.json LICENSE README.md
+
+      - name: Upload release asset
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.release.outputs.tag_name }}
+          ZIP_NAME="logseq-autolink-autotag-${VERSION}.zip"
+          gh release upload ${{ steps.release.outputs.tag_name }} ${ZIP_NAME}
