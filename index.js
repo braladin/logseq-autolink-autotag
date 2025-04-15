@@ -2,7 +2,7 @@ async function autoTag(block) {
   let content = block.content;
 
   // Log block details
-  console.debug(`logseq-auto-tagger: autoTag: block.content=${content}`);
+  console.debug(`logseq-autolink-autotag: block.content=${content}`);
 
   // Extract linked pages from content
   const pages = content
@@ -10,11 +10,11 @@ async function autoTag(block) {
     ?.map((page) => page.slice(2, -2));
 
   if (!pages || pages.length === 0) {
-    console.debug("logseq-auto-tagger: autoTag: pages=[]");
+    console.debug("logseq-autolink-autotag: pages=[]");
     return;
   }
 
-  console.debug(`logseq-auto-tagger: autoTag: pages=${pages.join(", ")}`);
+  console.debug(`logseq-autolink-autotag: pages=${pages.join(", ")}`);
 
   // Loop over pages and extract tags
   const tags = [];
@@ -40,13 +40,11 @@ async function autoTag(block) {
 
   // Log found tags
   if (!cleanedUpTags || cleanedUpTags.length === 0) {
-    console.debug("logseq-auto-tagger: autoTag: tags=[]");
+    console.debug("logseq-autolink-autotag: tags=[]");
     return;
   }
 
-  console.debug(
-    `logseq-auto-tagger: autoTag: tags=${cleanedUpTags.join(", ")}`,
-  );
+  console.debug(`logseq-autolink-autotag: tags ${cleanedUpTags.join(", ")}`);
 
   // Update content with tags
   let isUpdated = false;
@@ -56,14 +54,19 @@ async function autoTag(block) {
     content += ` ${tag.includes(" ") ? `#[[${tag}]]` : `#${tag}`}`;
     isUpdated = true;
   }
-  if (isUpdated) await logseq.Editor.updateBlock(block.uuid, content);
+  if (isUpdated) {
+    console.info(
+      `logseq-autolink-autotag: Auto-tagged block with tags: ${cleanedUpTags.join(", ")}`,
+    );
+    await logseq.Editor.updateBlock(block.uuid, content);
+  }
 }
 
 async function autoLink(block, allPages) {
   let content = block.content;
 
   // Log block details
-  console.debug(`logseq-auto-tagger: autoLink: block.content=${content}`);
+  console.debug(`logseq-autolink-autotag: block.content=${content}`);
 
   const sortedPages = [...allPages].sort(
     (a, b) => (b.name?.length || 0) - (a.name?.length || 0),
@@ -78,6 +81,9 @@ async function autoLink(block, allPages) {
   }
 
   if (content !== block.content) {
+    console.info(
+      `logseq-autolink-autotag: Auto-linked pages in block: ${content}`,
+    );
     await logseq.Editor.updateBlock(block.uuid, content);
   }
 }
@@ -118,12 +124,12 @@ async function main() {
   let currentBlock;
 
   logseq.Editor.registerSlashCommand("Auto tag", async () => {
-    console.debug("logseq-auto-tagger: main: slash command Auto tag");
+    console.debug("logseq-autolink-autotag: Auto tag slash command called");
     await autoTag(currentBlock);
   });
 
   logseq.Editor.registerSlashCommand("Auto link", async () => {
-    console.debug("logseq-auto-tagger: main: slash command Auto link");
+    console.debug("logseq-autolink-autotag: Auto link slash command called");
     await autoLink(currentBlock, allPagesSorted);
   });
 
@@ -136,9 +142,7 @@ async function main() {
       return;
 
     if (event.code === "Enter" && currentBlock) {
-      console.debug(
-        "logseq-auto-tagger: main: Enter pressed, processing block",
-      );
+      console.debug("logseq-autolink-autotag: Enter pressed. Processing block");
       try {
         currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
         await autoLink(currentBlock, allPagesSorted);
@@ -150,7 +154,7 @@ async function main() {
         currentBlock = undefined;
       }
     } else {
-      console.debug("logseq-auto-tagger: main: Block updated");
+      console.debug("logseq-autolink-autotag: Block updated");
       currentBlock = await logseq.Editor.getCurrentBlock();
     }
   });
@@ -177,18 +181,23 @@ async function main() {
       try {
         const pageEntity = await logseq.Editor.getPage(page.uuid);
         if (!pageEntity) {
-          console.debug(`logseq-auto-tagger: main: Page ${page.name} deleted`);
+          console.debug(
+            `logseq-autolink-autotag: Detected page ${page.name} deletion`,
+          );
           allPagesSorted = removePage(page, allPagesSorted);
         }
       } catch (error) {
-        console.error(`Error checking if page was deleted:`, error);
+        console.error(
+          `logseq-autolink-autotag: Error checking if page was deleted:`,
+          error,
+        );
         // If we can't verify the page exists, assume it's deleted to be safe
         allPagesSorted = removePage(page, allPagesSorted);
       }
     }
   });
 
-  console.debug("logseq-auto-tagger: main: plugin loaded");
+  console.info("logseq-autolink-autotag: Plugin loaded");
 }
 
 logseq.ready(main).catch(console.error);
