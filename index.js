@@ -109,6 +109,10 @@ async function getAllPagesSorted() {
   );
 }
 
+function removePage(pageToRemove, pages) {
+  return pages.filter((p) => p.uuid !== pageToRemove.uuid);
+}
+
 async function main() {
   let allPagesSorted = await getAllPagesSorted();
   let currentBlock;
@@ -152,9 +156,36 @@ async function main() {
   });
 
   logseq.DB.onChanged(async ({ blocks, txData, txMeta }) => {
+    // Ignore changes that are not relevant to the plugin
     if (txMeta?.["skipRefresh?"] === true) return;
-    if (txMeta?.outlinerOp !== "create-page") return;
-    allPagesSorted = insertNewPage(blocks[0], allPagesSorted);
+
+    // Handle page creation
+    if (txMeta?.outlinerOp === "create-page") {
+      allPagesSorted = insertNewPage(blocks[0], allPagesSorted);
+      return;
+    }
+
+    // Handle page deletion
+    const deletedPages = blocks?.filter(
+      (block) => block.parent === undefined && block.originalName !== undefined,
+    );
+
+    if (!deletedPages || deletedPages.length === 0) return;
+
+    // Process each potentially deleted page
+    for (const page of deletedPages) {
+      try {
+        const pageEntity = await logseq.Editor.getPage(page.uuid);
+        if (!pageEntity) {
+          console.debug(`logseq-auto-tagger: main: Page ${page.name} deleted`);
+          allPagesSorted = removePage(page, allPagesSorted);
+        }
+      } catch (error) {
+        console.error(`Error checking if page was deleted:`, error);
+        // If we can't verify the page exists, assume it's deleted to be safe
+        allPagesSorted = removePage(page, allPagesSorted);
+      }
+    }
   });
 
   console.debug("logseq-auto-tagger: main: plugin loaded");
@@ -185,7 +216,8 @@ fix
 - [x] add guards to process keyup events only when editing a block
 - [x] auto-link newly created pages
 - [x] remove #Parent tag if #[[Parent/Child]] tag was added
-- [ ] detect changes to page tags and auto-tag with latest tags
+- [x] do not auto-link deleted pages
+- [ ] keep track of tag rename and auto-tag with the latest tag
 
 perf
 - [x] use promise.all to fetch pages in parallel
