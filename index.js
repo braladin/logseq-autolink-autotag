@@ -33,17 +33,24 @@ async function autoTag(block) {
   // Remove duplicate tags
   const uniqueTags = [...new Set(tags)];
 
+  // Remove #Parent tag if a child tag #[[Parent/Child]] is present
+  const cleanedUpTags = uniqueTags.filter(
+    (tag) => uniqueTags.filter((t) => t.includes(tag + "/")).length === 0,
+  );
+
   // Log found tags
-  if (!uniqueTags || uniqueTags.length === 0) {
+  if (!cleanedUpTags || cleanedUpTags.length === 0) {
     console.debug("logseq-auto-tagger: autoTag: tags=[]");
     return;
   }
 
-  console.debug(`logseq-auto-tagger: autoTag: tags=${uniqueTags.join(", ")}`);
+  console.debug(
+    `logseq-auto-tagger: autoTag: tags=${cleanedUpTags.join(", ")}`,
+  );
 
   // Update content with tags
   let isUpdated = false;
-  for (const tag of uniqueTags) {
+  for (const tag of cleanedUpTags) {
     if (content.includes(`#[[${tag}]]`) || content.includes(`#${tag}`))
       continue;
     content += ` ${tag.includes(" ") ? `#[[${tag}]]` : `#${tag}`}`;
@@ -177,7 +184,8 @@ feat
 fix
 - [x] add guards to process keyup events only when editing a block
 - [x] auto-link newly created pages
-- [-] don't add a tag e.g. #Software if a child tag e.g. #[[Software/Testing]] is added
+- [x] remove #Parent tag if #[[Parent/Child]] tag was added
+- [ ] detect changes to page tags and auto-tag with latest tags
 
 perf
 - [x] use promise.all to fetch pages in parallel
