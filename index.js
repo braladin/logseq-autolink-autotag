@@ -75,8 +75,35 @@ async function autoLink(block, allPages) {
   }
 }
 
-async function main() {
+function insertNewPage(newPage, allPagesSorted) {
+  // Find the correct position to insert the new page based on name length
+  const newPageLength = newPage.name?.length || 0;
+
+  let insertIndex = 0;
+  while (
+    insertIndex < allPagesSorted.length &&
+    (allPagesSorted[insertIndex].name?.length || 0) > newPageLength
+  ) {
+    insertIndex++;
+  }
+
+  // Insert the new page at the correct position
+  allPagesSorted.splice(insertIndex, 0, newPage);
+  return allPagesSorted;
+}
+
+async function getAllPagesSorted() {
   const allPages = await logseq.Editor.getAllPages();
+
+  // Sort pages by name length to ensure that e.g. a page called
+  // "Software development" gets processed before a page called "Software"
+  return [...allPages].sort(
+    (a, b) => (b.name?.length || 0) - (a.name?.length || 0),
+  );
+}
+
+async function main() {
+  let allPagesSorted = await getAllPagesSorted();
   let currentBlock;
 
   logseq.Editor.registerSlashCommand("Auto tag", async () => {
@@ -86,7 +113,7 @@ async function main() {
 
   logseq.Editor.registerSlashCommand("Auto link", async () => {
     console.debug("logseq-auto-tagger: main: slash command Auto link");
-    await autoLink(currentBlock, allPages);
+    await autoLink(currentBlock, allPagesSorted);
   });
 
   window.parent.document.addEventListener("keyup", async (event) => {
@@ -103,7 +130,7 @@ async function main() {
       );
       try {
         currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        await autoLink(currentBlock, allPages);
+        await autoLink(currentBlock, allPagesSorted);
         const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
         await autoTag(updatedBlock);
       } catch (error) {
@@ -117,15 +144,22 @@ async function main() {
     }
   });
 
+  logseq.DB.onChanged(async ({ blocks, txData, txMeta }) => {
+    if (txMeta?.["skipRefresh?"] === true) return;
+    if (txMeta?.outlinerOp !== "create-page") return;
+    allPagesSorted = insertNewPage(blocks[0], allPagesSorted);
+  });
+
   console.debug("logseq-auto-tagger: main: plugin loaded");
 }
-// TODO skjeri
+
 logseq.ready(main).catch(console.error);
 
 /* TODO
 
 ci
 - [x] add release-please github action
+- [x] update release-please workflow with steps to create and attach a release zip
 
 feat
 - [x] auto-tag blocks based on linked pages by pressing enter
@@ -135,11 +169,15 @@ feat
 - [x] auto-link by slash command
 - [ ] auto-link by keybinding
 - [ ] auto-link first occurance only
+- [ ] setting to enable/disable auto-linking by pressing enter
+- [ ] setting to enable/disable auto-tagging by pressing Enter
+- [ ] setting to enable/disable auto-linking first occurance only
+- [ ] setting to set a custom property to auto-tag on
 
 fix
 - [x] add guards to process keyup events only when editing a block
-- [ ] auto-link newly created pages
-- [ ] remove parent tags if child tags are present
+- [x] auto-link newly created pages
+- [-] don't add a tag e.g. #Software if a child tag e.g. #[[Software/Testing]] is added
 
 perf
 - [x] use promise.all to fetch pages in parallel
