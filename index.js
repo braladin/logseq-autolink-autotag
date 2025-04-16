@@ -1,6 +1,12 @@
 async function autoTag(block) {
   let content = block.content;
 
+  // Skip special blocks
+  if (/\w+::/.test(content) || /{{.*}}/.test(content)) {
+    console.debug("logseq-autolink-autotag: Skipping special block");
+    return;
+  }
+
   // Log block details
   console.debug(`logseq-autolink-autotag: block.content=${content}`);
 
@@ -64,6 +70,12 @@ async function autoTag(block) {
 
 async function autoLink(block, allPages) {
   let content = block.content;
+
+  // Skip special blocks
+  if (/\w+::/.test(content) || /{{.*}}/.test(content)) {
+    console.debug("logseq-autolink-autotag: Skipping special block");
+    return;
+  }
 
   // Log block details
   console.debug(`logseq-autolink-autotag: block.content=${content}`);
@@ -219,13 +231,15 @@ feat
 - [ ] setting to enable/disable auto-linking by pressing enter
 - [ ] setting to enable/disable auto-tagging by pressing Enter
 - [ ] setting to enable/disable auto-linking first occurance only
-- [ ] setting to set a custom property to auto-tag on
+- [ ] setting to set property to auto-tag on i.e. other than tags::
+- [ ] setting to set special block patterns to skip
 
 fix
 - [x] add guards to process keyup events only when editing a block
 - [x] auto-link newly created pages
 - [x] remove #Parent tag if #[[Parent/Child]] tag was added
 - [x] do not auto-link deleted pages
+- [x] skip blocks with {{*}} or *::
 - [ ] keep track of tag rename and auto-tag with the latest tag
 
 perf
