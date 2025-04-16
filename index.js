@@ -242,18 +242,18 @@ async function main() {
 
 const settings = [
   {
-    key: "autoLinkOnEnter",
-    description: "Auto-link pages in current block on enter",
-    type: "boolean",
-    default: true,
-    title: "Enable auto-link on enter",
-  },
-  {
     key: "autoLinkKeybinding",
     description: "Keybinding to auto-link pages in current block",
     type: "string",
     default: "mod+shift+l",
     title: "Auto-link keybinding",
+  },
+  {
+    key: "autoLinkOnEnter",
+    description: "Auto-link pages in current block on enter",
+    type: "boolean",
+    default: true,
+    title: "Enable auto-link on enter",
   },
   {
     key: "autoLinkFirstOccuranceOnly",
@@ -264,18 +264,18 @@ const settings = [
     title: "Auto-link first occurance only",
   },
   {
-    key: "autoTagOnEnter",
-    description: "Auto-tag current block on enter",
-    type: "boolean",
-    default: true,
-    title: "Enable auto-tag on enter",
-  },
-  {
     key: "autoTagKeybinding",
     description: "Keybinding to auto-tag current block",
     type: "string",
     default: "mod+shift+t",
     title: "Auto-tag keybinding",
+  },
+  {
+    key: "autoTagOnEnter",
+    description: "Auto-tag current block on enter",
+    type: "boolean",
+    default: true,
+    title: "Enable auto-tag on enter",
   },
   {
     key: "useHashtag",
@@ -293,19 +293,18 @@ const settings = [
   },
   {
     key: "pagesToSkip",
-    description: "Pages to skip from auto-linking",
+    description: "List of comma-separated pages to exclude from auto-linking",
     type: "string",
-    default:
-      "a,b,c,card,now,later,todo,doing,done,wait,waiting,canceled,cancelled,started,in-progress",
-    title: "Pages to ignore when auto-linking",
+    default: "card",
+    title: "Pages to exclude from auto-linking",
   },
   {
     key: "blocksToSkip",
     description:
-      "Regex pattern to identify blocks to skip from auto-linking and auto-tagging on enter",
+      "Regex pattern of blocks to exclude from auto-linking and auto-tagging on enter",
     type: "string",
     default: "(\w+::)|{{.*}}",
-    title: "Block to skip on enter",
+    title: "Blocks to exclude from auto-linking and auto-tagging on enter",
   },
 ];
 logseq.useSettingsSchema(settings);
