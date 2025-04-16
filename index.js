@@ -1,11 +1,6 @@
 async function autoTag(block) {
+  console.debug("logseq-autolink-autotag: Auto-tag");
   let content = block.content;
-
-  // Skip special blocks
-  if (/\w+::/.test(content) || /{{.*}}/.test(content)) {
-    console.debug("logseq-autolink-autotag: Skipping special block");
-    return;
-  }
 
   // Log block details
   console.debug(`logseq-autolink-autotag: block.content: ${content}`);
@@ -55,9 +50,17 @@ async function autoTag(block) {
   // Update content with tags
   let isUpdated = false;
   for (const tag of cleanedUpTags) {
-    if (content.includes(`#[[${tag}]]`) || content.includes(`#${tag}`))
-      continue;
-    content += ` [[${tag}]]`;
+    // Skip tag if already added
+    if (content.includes(`[[${tag}]]`) || content.includes(`#${tag}`)) continue;
+    const hashtag = logseq.settings?.useHashtag ? "#" : "";
+    if (logseq.settings?.insertTags) {
+      content = `${hashtag}[[${tag}]] ${content}`;
+    } else {
+      content =
+        tag.includes(" ") || hashtag === ""
+          ? `${content} ${hashtag}[[${tag}]]`
+          : `${content} ${hashtag}${tag}`;
+    }
     isUpdated = true;
   }
   if (isUpdated) {
@@ -69,22 +72,19 @@ async function autoTag(block) {
 }
 
 async function autoLink(block, allPages) {
+  console.debug("logseq-autolink-autotag: Auto-link");
   let content = block.content;
 
-  // Skip special blocks
-  if (/\w+::/.test(content) || /{{.*}}/.test(content)) {
-    console.debug("logseq-autolink-autotag: Skipping special block");
-    return;
-  }
-
   // Log block details
-  console.debug(`logseq-autolink-autotag: block.content=${content}`);
+  console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
   const sortedPages = [...allPages].sort(
     (a, b) => (b.name?.length || 0) - (a.name?.length || 0),
   );
 
   for (const page of sortedPages) {
+    // Skip page if it found in pagesToSkip setting
+    if (logseq.settings?.pagesToSkip.includes(page.name)) continue;
     // Create a regex pattern from the page name, escaping special characters
     const pageName = page.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
@@ -141,6 +141,19 @@ function removePage(pageToRemove, pages) {
   return pages.filter((p) => p.uuid !== pageToRemove.uuid);
 }
 
+function isBlockToSkip({ content }) {
+  if (
+    logseq.settings?.blocksToSkip &&
+    new RegExp(logseq.settings.blocksToSkip).test(content)
+  ) {
+    console.debug(
+      "logseq-autolink-autotag: block skipped as it matches blocksToSkip setting",
+    );
+    return true;
+  }
+  return false;
+}
+
 async function main() {
   let allPagesSorted = await getAllPagesSorted();
   let currentBlock;
@@ -164,12 +177,17 @@ async function main() {
       return;
 
     if (event.code === "Enter" && currentBlock) {
-      console.debug("logseq-autolink-autotag: Enter pressed. Processing block");
+      console.debug("logseq-autolink-autotag: Enter pressed");
       try {
         currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        await autoLink(currentBlock, allPagesSorted);
+        if (isBlockToSkip(currentBlock)) return;
+        if (logseq.settings?.autoLinkOnEnter) {
+          await autoLink(currentBlock, allPagesSorted);
+        }
         const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        await autoTag(updatedBlock);
+        if (logseq.settings?.autoTagOnEnter) {
+          await autoTag(updatedBlock);
+        }
       } catch (error) {
         console.error("Error processing block:", error);
       } finally {
@@ -309,6 +327,7 @@ feat
 - [ ] auto-link by keybinding
 - [x] add auto-link first occurance only
 - [x] auto-tag with [[tag]] instead of #tag
+- [x] add autoTagOnEnter, autoLinkOnEnter, pagesToSkip, blocksToSkip, useHashtag, insertTags logic
 - [x] add setting to enable/disable auto-link by pressing enter
 - [x] add setting to set auto-link keybinding
 - [x] add setting to enable/disable auto-link first occurance only
