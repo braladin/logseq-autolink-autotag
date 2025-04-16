@@ -89,7 +89,17 @@ async function autoLink(block, allPages) {
     const pageName = page.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
     const regex = new RegExp(`(?<=^|\\s)${pageName}(?=\\s|$|[,.;:!?)])`, "gi");
-    content = content.replace(regex, `[[${page.name}]]`);
+    // Only replace first occurrence if setting is enabled
+    if (logseq.settings?.autoLinkFirstOccuranceOnly) {
+      // Replace only the first occurrence
+      const match = content.match(regex);
+      if (match) {
+        content = content.replace(match[0], `[[${page.name}]]`);
+      }
+    } else {
+      // Replace all occurrences
+      content = content.replace(regex, `[[${page.name}]]`);
+    }
   }
 
   if (content !== block.content) {
@@ -297,7 +307,7 @@ feat
 - [x] auto-link pages by pressing enter
 - [x] auto-link by slash command
 - [ ] auto-link by keybinding
-- [ ] auto-link first occurance only
+- [x] add auto-link first occurance only
 - [x] auto-tag with [[tag]] instead of #tag
 - [x] add setting to enable/disable auto-link by pressing enter
 - [x] add setting to set auto-link keybinding
