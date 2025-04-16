@@ -212,6 +212,76 @@ async function main() {
   console.info("logseq-autolink-autotag: Plugin loaded");
 }
 
+const settings = [
+  {
+    key: "autoLinkOnEnter",
+    description: "Auto-link pages in current block on enter",
+    type: "boolean",
+    default: true,
+    title: "Enable auto-link on enter",
+  },
+  {
+    key: "autoLinkKeybinding",
+    description: "Keybinding to auto-link pages in current block",
+    type: "string",
+    default: "mod+shift+l",
+    title: "Auto-link keybinding",
+  },
+  {
+    key: "autoLinkFirstOccuranceOnly",
+    description:
+      "Auto-link only the first occurance of a page in current block",
+    type: "boolean",
+    default: true,
+    title: "Auto-link first occurance only",
+  },
+  {
+    key: "autoTagOnEnter",
+    description: "Auto-tag current block on enter",
+    type: "boolean",
+    default: true,
+    title: "Enable auto-tag on enter",
+  },
+  {
+    key: "autoTagKeybinding",
+    description: "Keybinding to auto-tag current block",
+    type: "string",
+    default: "mod+shift+t",
+    title: "Auto-tag keybinding",
+  },
+  {
+    key: "useHashtag",
+    description: "Auto-tag with #tag instead of [[tag]]",
+    type: "boolean",
+    default: false,
+    title: "Use hashtag",
+  },
+  {
+    key: "insertTags",
+    description: "Insert tags instead of appending",
+    type: "boolean",
+    default: false,
+    title: "Insert tags",
+  },
+  {
+    key: "pagesToSkip",
+    description: "Pages to skip from auto-linking",
+    type: "string",
+    default:
+      "a,b,c,card,now,later,todo,doing,done,wait,waiting,canceled,cancelled,started,in-progress",
+    title: "Pages to ignore when auto-linking",
+  },
+  {
+    key: "blocksToSkip",
+    description:
+      "Regex pattern to identify blocks to skip from auto-linking and auto-tagging on enter",
+    type: "string",
+    default: "(\w+::)|{{.*}}",
+    title: "Block to skip on enter",
+  },
+];
+logseq.useSettingsSchema(settings);
+
 logseq.ready(main).catch(console.error);
 
 /* TODO
@@ -229,13 +299,16 @@ feat
 - [ ] auto-link by keybinding
 - [ ] auto-link first occurance only
 - [x] auto-tag with [[tag]] instead of #tag
-- [ ] setting to enable/disable auto-linking by pressing enter
-- [ ] setting to enable/disable auto-tagging by pressing Enter
-- [ ] setting to enable/disable auto-linking first occurance only
-- [ ] setting to set property to auto-tag on i.e. other than tags::
-- [ ] setting to set special block patterns to skip
-- [ ] setting to append/insert tags
-- [ ] setting to auto-tag with [[tag]]/#tag
+- [x] add setting to enable/disable auto-link by pressing enter
+- [x] add setting to set auto-link keybinding
+- [x] add setting to enable/disable auto-link first occurance only
+- [x] add setting to enable/disable auto-tag by pressing enter
+- [x] add setting to set auto-tag keybinding
+- [x] add setting to use #tag/[[tag]] tag format
+- [x] add setting to insert/append tags
+- [x] add setting to set blocks to skip
+- [x] add setting to set pages to skip
+- [ ] add setting to set property to auto-tag on i.e. other than tags::
 
 fix
 - [x] add guards to process keyup events only when editing a block
