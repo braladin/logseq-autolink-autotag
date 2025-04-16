@@ -8,7 +8,7 @@ async function autoTag(block) {
   }
 
   // Log block details
-  console.debug(`logseq-autolink-autotag: block.content=${content}`);
+  console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
   // Extract linked pages from content
   const pages = content
@@ -16,11 +16,11 @@ async function autoTag(block) {
     ?.map((page) => page.slice(2, -2));
 
   if (!pages || pages.length === 0) {
-    console.debug("logseq-autolink-autotag: pages=[]");
+    console.debug("logseq-autolink-autotag: pages: []");
     return;
   }
 
-  console.debug(`logseq-autolink-autotag: pages=${pages.join(", ")}`);
+  console.debug(`logseq-autolink-autotag: pages: ${pages.join(", ")}`);
 
   // Loop over pages and extract tags
   const tags = [];
@@ -46,18 +46,18 @@ async function autoTag(block) {
 
   // Log found tags
   if (!cleanedUpTags || cleanedUpTags.length === 0) {
-    console.debug("logseq-autolink-autotag: tags=[]");
+    console.debug("logseq-autolink-autotag: tags: []");
     return;
   }
 
-  console.debug(`logseq-autolink-autotag: tags ${cleanedUpTags.join(", ")}`);
+  console.debug(`logseq-autolink-autotag: tags: ${cleanedUpTags.join(", ")}`);
 
   // Update content with tags
   let isUpdated = false;
   for (const tag of cleanedUpTags) {
     if (content.includes(`#[[${tag}]]`) || content.includes(`#${tag}`))
       continue;
-    content += ` ${tag.includes(" ") ? `#[[${tag}]]` : `#${tag}`}`;
+    content += ` [[${tag}]]`;
     isUpdated = true;
   }
   if (isUpdated) {
@@ -228,11 +228,14 @@ feat
 - [x] auto-link by slash command
 - [ ] auto-link by keybinding
 - [ ] auto-link first occurance only
+- [x] auto-tag with [[tag]] instead of #tag
 - [ ] setting to enable/disable auto-linking by pressing enter
 - [ ] setting to enable/disable auto-tagging by pressing Enter
 - [ ] setting to enable/disable auto-linking first occurance only
 - [ ] setting to set property to auto-tag on i.e. other than tags::
 - [ ] setting to set special block patterns to skip
+- [ ] setting to append/insert tags
+- [ ] setting to auto-tag with [[tag]]/#tag
 
 fix
 - [x] add guards to process keyup events only when editing a block
