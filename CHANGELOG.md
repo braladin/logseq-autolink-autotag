@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.0.0...v1.1.0) (2025-04-17)
+
+
+### Features
+
+* add 9 settings ([fe49de3](https://github.com/braladin/logseq-autolink-autotag/commit/fe49de39bd5762d955ca34db09a1ab4686411b90))
+* add auto-link only first occurance ([d30bea0](https://github.com/braladin/logseq-autolink-autotag/commit/d30bea0acbff6a27844c30a99d0dfbda4cbd919f))
+* add autoTagOnEnter, autoLinkOnEnter, pagesToSkip, blocksToSkip, useHashtag, insertTags logic ([7eb43a6](https://github.com/braladin/logseq-autolink-autotag/commit/7eb43a6f49107957986cb5cad89d2aadcccf9a00))
+* auto-tag with [[tag]] instead of #tag ([d26c2c9](https://github.com/braladin/logseq-autolink-autotag/commit/d26c2c90c531f797804a75e2a72f900ee49f5367))
+
+
+### Bug Fixes
+
+* add empty block check to prevent errors ([38f918d](https://github.com/braladin/logseq-autolink-autotag/commit/38f918d2123b3a8bac8e98dc21e5df5e47d57759))
+* auto-link newly created pages ([5320fb3](https://github.com/braladin/logseq-autolink-autotag/commit/5320fb3b6d6751c8e5754f53e20fffd245479e7e))
+* do not auto-link deleted pages ([addff53](https://github.com/braladin/logseq-autolink-autotag/commit/addff538d9db248fa04ed9b7eba4b1512eba81a2))
+* remove #Parent tag if #[[Parent/Child]] tag was added ([92b1246](https://github.com/braladin/logseq-autolink-autotag/commit/92b124634a7eaa932478d230738aa7a8a17faf7c))
+* skip blocks with {{*}} or *:: ([4554a58](https://github.com/braladin/logseq-autolink-autotag/commit/4554a5898d83bbd1548ca505359f93c6ea53e510))
+
 ## 1.0.0 (2025-04-15)
 
 
