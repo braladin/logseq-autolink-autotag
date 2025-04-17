@@ -1,4 +1,11 @@
 async function autoTag(block) {
+  if (!block?.content) {
+    console.error(
+      "logseq-autolink-autotag: Current block is empty. Type something and try again.",
+    );
+    return;
+  }
+
   console.debug("logseq-autolink-autotag: Auto-tag");
   let content = block.content;
 
@@ -72,6 +79,12 @@ async function autoTag(block) {
 }
 
 async function autoLink(block, allPages) {
+  if (!block?.content) {
+    console.error(
+      "logseq-autolink-autotag: Current block is empty. Type something and try again.",
+    );
+    return;
+  }
   console.debug("logseq-autolink-autotag: Auto-link");
   let content = block.content;
 
