@@ -1,4 +1,4 @@
-async function autoTag(block) {
+async function autoTag(block, pagesToTagsMap) {
   if (!block?.content) {
     console.error(
       "logseq-autolink-autotag: Current block is empty. Type something and try again.",
@@ -24,19 +24,10 @@ async function autoTag(block) {
 
   console.debug(`logseq-autolink-autotag: pages: ${pages.join(", ")}`);
 
-  // Loop over pages and extract tags
-  const tags = [];
-  const tagPromises = pages.map((page) => logseq.Editor.getPage(page));
-  const pageEntities = await Promise.all(tagPromises);
-  for (const pageEntity of pageEntities) {
-    if (pageEntity?.properties?.tags) {
-      // Handle different formats of tags (array or single value)
-      const pageTags = Array.isArray(pageEntity.properties.tags)
-        ? pageEntity.properties.tags
-        : [pageEntity.properties.tags];
-      tags.push(...pageTags);
-    }
-  }
+  // Collect tags from all linked pages
+  const tags = pages
+    .filter((page) => pagesToTagsMap[page] !== undefined)
+    .flatMap((page) => pagesToTagsMap[page]);
 
   // Remove duplicate tags
   const uniqueTags = [...new Set(tags)];
@@ -78,7 +69,7 @@ async function autoTag(block) {
   }
 }
 
-async function autoLink(block, allPages) {
+async function autoLink(block, allPagesSorted) {
   if (!block?.content) {
     console.error(
       "logseq-autolink-autotag: Current block is empty. Type something and try again.",
@@ -91,15 +82,11 @@ async function autoLink(block, allPages) {
   // Log block details
   console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
-  const sortedPages = [...allPages].sort(
-    (a, b) => (b.name?.length || 0) - (a.name?.length || 0),
-  );
-
-  for (const page of sortedPages) {
+  for (const page of allPagesSorted) {
     // Skip page if it found in pagesToExclude setting
-    if (logseq.settings?.pagesToExclude.includes(page.name)) continue;
+    if (logseq.settings?.pagesToExclude.includes(page)) continue;
     // Create a regex pattern from the page name, escaping special characters
-    const pageName = page.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pageName = page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
     const regex = new RegExp(`(?<=^|\\s)${pageName}(?=\\s|$|[,.;:!?)])`, "gi");
     // Only replace first occurrence if setting is enabled
@@ -107,11 +94,11 @@ async function autoLink(block, allPages) {
       // Replace only the first occurrence
       const match = content.match(regex);
       if (match) {
-        content = content.replace(match[0], `[[${page.name}]]`);
+        content = content.replace(match[0], `[[${page}]]`);
       }
     } else {
       // Replace all occurrences
-      content = content.replace(regex, `[[${page.name}]]`);
+      content = content.replace(regex, `[[${page}]]`);
     }
   }
 
@@ -123,9 +110,9 @@ async function autoLink(block, allPages) {
   }
 }
 
-function insertNewPage(newPage, allPagesSorted) {
+function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   // Find the correct position to insert the new page based on name length
-  const newPageLength = newPage.name?.length || 0;
+  const newPageLength = newPageEntity.originalName?.length || 0;
 
   let insertIndex = 0;
   while (
@@ -136,25 +123,52 @@ function insertNewPage(newPage, allPagesSorted) {
   }
 
   // Insert the new page at the correct position
-  allPagesSorted.splice(insertIndex, 0, newPage);
-  return allPagesSorted;
+  allPagesSorted.splice(insertIndex, 0, newPageEntity.originalName);
 }
 
-async function getAllPagesSorted() {
-  const allPages = await logseq.Editor.getAllPages();
+function updatePagesToTagsMap(tagsBlock, taggedPage, pagesToTagsMap) {
+  const tagsContent = tagsBlock.content.replace(/^tags::/, "").trim();
+  const tags = tagsContent
+    .split(",")
+    .map((tag) => tag.trim().replace(/^#/, ""))
+    .filter((tag) => tag.length > 0);
 
-  // Sort pages by name length to ensure that e.g. a page called
-  // "Software development" gets processed before a page called "Software"
-  return [...allPages].sort(
-    (a, b) => (b.name?.length || 0) - (a.name?.length || 0),
+  pagesToTagsMap[taggedPage.originalName] = tags;
+}
+
+async function getPagesToTagsMap() {
+  const pageEntities = await logseq.Editor.getAllPages();
+  const pagesToTagsMap = {};
+
+  for (const page of pageEntities) {
+    // Skip journal pages
+    if (page["journal?"] === true) continue;
+
+    // Store the page name and tags
+    pagesToTagsMap[page.originalName] = page.properties?.tags
+      ? page.properties?.tags
+      : undefined;
+
+    // Store page aliases and assign them the same tags as the page
+    if (page.properties?.alias) {
+      for (const alias of page.properties.alias) {
+        pagesToTagsMap[alias] = page.properties?.tags
+          ? page.properties?.tags
+          : undefined;
+      }
+    }
+  }
+
+  // Sort pages by length in descending order so that e.g. a page "Software development"
+  // gets auto-linked before a page "Software"
+  allPagesSorted = Object.keys(pagesToTagsMap).sort(
+    (a, b) => b.length - a.length,
   );
+
+  return { allPagesSorted, pagesToTagsMap };
 }
 
-function removePage(pageToRemove, pages) {
-  return pages.filter((p) => p.uuid !== pageToRemove.uuid);
-}
-
-function isBlockToSkip({ content }) {
+function isBlockToExclude({ content }) {
   if (
     logseq.settings?.blocksToExclude &&
     new RegExp(logseq.settings.blocksToExclude).test(content)
@@ -168,12 +182,12 @@ function isBlockToSkip({ content }) {
 }
 
 async function main() {
-  let allPagesSorted = await getAllPagesSorted();
+  let { allPagesSorted, pagesToTagsMap } = await getPagesToTagsMap();
   let currentBlock;
 
   logseq.Editor.registerSlashCommand("Auto tag", async () => {
     console.debug("logseq-autolink-autotag: Auto tag slash command called");
-    await autoTag(currentBlock);
+    await autoTag(currentBlock, pagesToTagsMap);
   });
 
   logseq.Editor.registerSlashCommand("Auto link", async () => {
@@ -193,13 +207,13 @@ async function main() {
       console.debug("logseq-autolink-autotag: Enter pressed");
       try {
         currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        if (isBlockToSkip(currentBlock)) return;
+        if (isBlockToExclude(currentBlock)) return;
         if (logseq.settings?.autoLinkOnEnter) {
           await autoLink(currentBlock, allPagesSorted);
         }
-        const updatedBlock = await logseq.Editor.getBlock(currentBlock.uuid);
+        currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
         if (logseq.settings?.autoTagOnEnter) {
-          await autoTag(updatedBlock);
+          await autoTag(currentBlock, pagesToTagsMap);
         }
       } catch (error) {
         console.error("Error processing block:", error);
@@ -216,37 +230,39 @@ async function main() {
     // Ignore changes that are not relevant to the plugin
     if (txMeta?.["skipRefresh?"] === true) return;
 
-    // Handle page creation
+    // Detect page creation and update allPagesSorted
     if (txMeta?.outlinerOp === "create-page") {
-      allPagesSorted = insertNewPage(blocks[0], allPagesSorted);
+      updateAllPagesSorted(blocks[0], allPagesSorted);
       return;
     }
 
-    // Handle page deletion
-    const deletedPages = blocks?.filter(
-      (block) => block.parent === undefined && block.originalName !== undefined,
+    // Detect tag change and update pagesToTagsMap
+    if (txMeta?.outlinerOp === "save-block") {
+      if (blocks[0].content && blocks[0].content.startsWith("tags::"))
+        updatePagesToTagsMap(blocks[0], blocks[1], pagesToTagsMap);
+      return;
+    }
+
+    const potentiallyDeletedPages = blocks?.filter(
+      (block) =>
+        block.parent === undefined &&
+        block.originalName !== undefined &&
+        block["journal?"] === false,
     );
-
-    if (!deletedPages || deletedPages.length === 0) return;
-
+    if (!potentiallyDeletedPages || potentiallyDeletedPages.length === 0)
+      return;
     // Process each potentially deleted page
-    for (const page of deletedPages) {
-      try {
-        const pageEntity = await logseq.Editor.getPage(page.uuid);
-        if (!pageEntity) {
-          console.debug(
-            `logseq-autolink-autotag: Detected page ${page.name} deletion`,
-          );
-          allPagesSorted = removePage(page, allPagesSorted);
-        }
-      } catch (error) {
-        console.error(
-          `logseq-autolink-autotag: Error checking if page was deleted:`,
-          error,
-        );
-        // If we can't verify the page exists, assume it's deleted to be safe
-        allPagesSorted = removePage(page, allPagesSorted);
-      }
+    for (const page of potentiallyDeletedPages) {
+      // Get the page to check if it still exists
+      const pageEntity = await logseq.Editor.getPage(page.uuid);
+      // If page exits skip to next page in loop
+      if (pageEntity) continue;
+
+      const pageNameToRemove = page.originalName;
+      allPagesSorted = allPagesSorted.filter(
+        (pageName) => pageName !== pageNameToRemove,
+      );
+      delete pagesToTagsMap[pageNameToRemove];
     }
   });
 
@@ -357,10 +373,13 @@ fix
 - [x] remove #Parent tag if #[[Parent/Child]] tag was added
 - [x] do not auto-link deleted pages
 - [x] skip blocks with {{*}} or *::
-- [ ] keep track of tag rename and auto-tag with the latest tag
+- [ ] plugin continues auto-tagging with obsolete tags after they are renamed
+- [ ] new pages added as aliases to existing pages cannot be not detected
 
 perf
 - [x] use promise.all to fetch pages in parallel
 - [x] use keyup event instead of logseq.db.onchange to improve responsiveness
+- [x] use pre-constructed data structures of page names and tags instead of fetching data every time
+- [ ] make logging conditional
 
 */
