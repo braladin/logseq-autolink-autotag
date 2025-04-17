@@ -83,8 +83,8 @@ async function autoLink(block, allPages) {
   );
 
   for (const page of sortedPages) {
-    // Skip page if it found in pagesToSkip setting
-    if (logseq.settings?.pagesToSkip.includes(page.name)) continue;
+    // Skip page if it found in pagesToExclude setting
+    if (logseq.settings?.pagesToExclude.includes(page.name)) continue;
     // Create a regex pattern from the page name, escaping special characters
     const pageName = page.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
@@ -143,11 +143,11 @@ function removePage(pageToRemove, pages) {
 
 function isBlockToSkip({ content }) {
   if (
-    logseq.settings?.blocksToSkip &&
-    new RegExp(logseq.settings.blocksToSkip).test(content)
+    logseq.settings?.blocksToExclude &&
+    new RegExp(logseq.settings.blocksToExclude).test(content)
   ) {
     console.debug(
-      "logseq-autolink-autotag: block skipped as it matches blocksToSkip setting",
+      "logseq-autolink-autotag: block skipped as it matches blocksToExclude setting",
     );
     return true;
   }
@@ -194,7 +194,7 @@ async function main() {
         currentBlock = undefined;
       }
     } else {
-      console.debug("logseq-autolink-autotag: Block updated");
+      console.debug("logseq-autolink-autotag: Current block updated");
       currentBlock = await logseq.Editor.getCurrentBlock();
     }
   });
@@ -292,14 +292,14 @@ const settings = [
     title: "Insert tags",
   },
   {
-    key: "pagesToSkip",
+    key: "pagesToExclude",
     description: "List of comma-separated pages to exclude from auto-linking",
     type: "string",
     default: "card",
     title: "Pages to exclude from auto-linking",
   },
   {
-    key: "blocksToSkip",
+    key: "blocksToExclude",
     description:
       "Regex pattern of blocks to exclude from auto-linking and auto-tagging on enter",
     type: "string",
@@ -326,7 +326,7 @@ feat
 - [ ] auto-link by keybinding
 - [x] add auto-link first occurance only
 - [x] auto-tag with [[tag]] instead of #tag
-- [x] add autoTagOnEnter, autoLinkOnEnter, pagesToSkip, blocksToSkip, useHashtag, insertTags logic
+- [x] add autoTagOnEnter, autoLinkOnEnter, pagesToExclude, blocksToExclude, useHashtag, insertTags logic
 - [x] add setting to enable/disable auto-link by pressing enter
 - [x] add setting to set auto-link keybinding
 - [x] add setting to enable/disable auto-link first occurance only
