@@ -332,7 +332,7 @@ const settings = [
     description:
       "Regex pattern of blocks to exclude from auto-linking and auto-tagging on enter",
     type: "string",
-    default: "(\w+::)|{{.*}}",
+    default: "(\\w+::)|{{.*}}",
     title: "Blocks to exclude from auto-linking and auto-tagging on enter",
   },
 ];
