@@ -5,7 +5,10 @@
   "author": "braladin",
   "main": "index.js",
   "logseq": {
-    "id": "logseq-autolink-autotag"
+    "id": "logseq-autolink-autotag",
+    "title": "Auto-Link Auto-Tag",
+    "icon": "./icon.png",
+    "description": "A Logseq plugin to auto-link pages and auto-tag blocks"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",

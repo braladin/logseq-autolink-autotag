@@ -50,8 +50,8 @@ async function autoTag(block, pagesToTagsMap) {
   for (const tag of cleanedUpTags) {
     // Skip tag if already added
     if (content.includes(`[[${tag}]]`) || content.includes(`#${tag}`)) continue;
-    const hashtag = logseq.settings?.useHashtag ? "#" : "";
-    if (logseq.settings?.insertTags) {
+    const hashtag = logseq.settings?.tagAsLink ? "" : "#";
+    if (logseq.settings?.tagInTheBeginning) {
       content = `${hashtag}[[${tag}]] ${content}`;
     } else {
       content =
@@ -107,7 +107,9 @@ async function autoLink(block, allPagesSorted) {
       `logseq-autolink-autotag: Auto-linked pages in block: ${content}`,
     );
     await logseq.Editor.updateBlock(block.uuid, content);
+    block.content = content;
   }
+  return block;
 }
 
 function updateAllPagesSorted(newPageEntity, allPagesSorted) {
@@ -168,62 +170,107 @@ async function getPagesToTagsMap() {
   return { allPagesSorted, pagesToTagsMap };
 }
 
-function isBlockToExclude({ content }) {
-  if (
-    logseq.settings?.blocksToExclude &&
-    new RegExp(logseq.settings.blocksToExclude).test(content)
-  ) {
-    console.debug(
-      "logseq-autolink-autotag: block skipped as it matches blocksToExclude setting",
-    );
-    return true;
+async function autoLinkAutoTagCallback(
+  cmd,
+  block,
+  allPagesSorted = [],
+  pagesToTagsMap = {},
+) {
+  if (!block?.uuid) return;
+  block = await logseq.Editor.getBlock(block.uuid);
+  // Skip block if it's excluded by user settings
+  if (new RegExp(logseq.settings.blocksToExclude).test(block.content)) return;
+  if (cmd === "l") {
+    command = "auto-link";
+  } else if (cmd === "t") {
+    command = "auto-tag";
+  } else if (cmd === "lt") {
+    command = "auto-link auto-tag";
   }
-  return false;
+  console.debug(
+    `logseq-autolink-autotag: Running ${command} on current block with content "${block.content}"`,
+  );
+  if (cmd.includes("l") && logseq.settings?.enableAutoLink) {
+    block = await autoLink(block, allPagesSorted);
+  }
+  if (cmd.includes("t") && logseq.settings?.enableAutoTag) {
+    await autoTag(block, pagesToTagsMap);
+  }
+  block = undefined;
 }
 
 async function main() {
   let { allPagesSorted, pagesToTagsMap } = await getPagesToTagsMap();
   let currentBlock;
 
-  logseq.Editor.registerSlashCommand("Auto tag", async () => {
-    console.debug("logseq-autolink-autotag: Auto tag slash command called");
-    await autoTag(currentBlock, pagesToTagsMap);
+  logseq.Editor.registerSlashCommand("Auto-tag", async () => {
+    await autoLinkAutoTagCallback(
+      "t",
+      currentBlock,
+      (pagesToTagsMap = pagesToTagsMap),
+    );
   });
 
-  logseq.Editor.registerSlashCommand("Auto link", async () => {
-    console.debug("logseq-autolink-autotag: Auto link slash command called");
-    await autoLink(currentBlock, allPagesSorted);
+  logseq.Editor.registerSlashCommand("Auto-link", async () => {
+    await autoLinkAutoTagCallback(
+      "l",
+      currentBlock,
+      (allPagesSorted = allPagesSorted),
+    );
   });
+
+  logseq.Editor.registerSlashCommand("Auto-link Auto-tag", async () => {
+    await autoLinkAutoTagCallback(
+      "lt",
+      currentBlock,
+      allPagesSorted,
+      pagesToTagsMap,
+    );
+  });
+
+  logseq.App.registerCommandShortcut(
+    {
+      binding: logseq.settings?.keybinding,
+    },
+    async () => {
+      autoLinkAutoTagCallback(
+        "lt",
+        currentBlock,
+        allPagesSorted,
+        pagesToTagsMap,
+      );
+    },
+  );
 
   window.parent.document.addEventListener("keyup", async (event) => {
-    // Only process keyup events that occur when editing blocks
+    // Skip keyup events that do not occur when editing blocks
+    // or when modifier keys are pressed
     if (
       event?.target?.tagName.toLowerCase() !== "textarea" ||
-      !event.target.getAttribute("aria-label") === "editing block"
+      !event.target.getAttribute("aria-label") === "editing block" ||
+      event.altKey === true ||
+      event.ctrlKey === true ||
+      event.metaKey === true ||
+      event.shiftKey === true ||
+      ["Shift", "Control", "Alt", "Meta"].includes(event.key)
     )
       return;
-
-    if (event.code === "Enter" && currentBlock) {
+    if (
+      event.code === "Enter" &&
+      logseq.settings?.runUponPressingEnter === true &&
+      currentBlock
+    ) {
       console.debug("logseq-autolink-autotag: Enter pressed");
-      try {
-        currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        if (isBlockToExclude(currentBlock)) return;
-        if (logseq.settings?.autoLinkOnEnter) {
-          await autoLink(currentBlock, allPagesSorted);
-        }
-        currentBlock = await logseq.Editor.getBlock(currentBlock.uuid);
-        if (logseq.settings?.autoTagOnEnter) {
-          await autoTag(currentBlock, pagesToTagsMap);
-        }
-      } catch (error) {
-        console.error("Error processing block:", error);
-      } finally {
-        currentBlock = undefined;
-      }
-    } else {
-      console.debug("logseq-autolink-autotag: Current block updated");
-      currentBlock = await logseq.Editor.getCurrentBlock();
+      autoLinkAutoTagCallback(
+        "lt",
+        currentBlock,
+        allPagesSorted,
+        pagesToTagsMap,
+      );
+      return;
     }
+    console.debug("logseq-autolink-autotag: Current block updated");
+    currentBlock = await logseq.Editor.getCurrentBlock();
   });
 
   logseq.DB.onChanged(async ({ blocks, txData, txMeta }) => {
@@ -271,54 +318,54 @@ async function main() {
 
 const settings = [
   {
-    key: "autoLinkKeybinding",
-    description: "Keybinding to auto-link pages in current block",
+    key: "keybinding",
+    description: "Keybinding to run plugin on the last edited block",
     type: "string",
-    default: "mod+shift+l",
-    title: "Auto-link keybinding",
+    default: "mod+shift+b",
+    title: "Keybinding",
   },
   {
-    key: "autoLinkOnEnter",
-    description: "Auto-link pages in current block on enter",
+    key: "enableAutoLink",
+    description: "Enable automatic linking",
     type: "boolean",
     default: true,
-    title: "Enable auto-link on enter",
+    title: "Enable auto-link",
+  },
+  {
+    key: "enableAutoTag",
+    description: "Enable automatic tagging",
+    type: "boolean",
+    default: true,
+    title: "Enable auto-tag",
   },
   {
     key: "autoLinkFirstOccuranceOnly",
     description:
-      "Auto-link only the first occurance of a page in current block",
+      "Auto-link only the first occurance of a page in the last edited block",
     type: "boolean",
-    default: true,
+    default: false,
     title: "Auto-link first occurance only",
   },
   {
-    key: "autoTagKeybinding",
-    description: "Keybinding to auto-tag current block",
-    type: "string",
-    default: "mod+shift+t",
-    title: "Auto-tag keybinding",
-  },
-  {
-    key: "autoTagOnEnter",
-    description: "Auto-tag current block on enter",
+    key: "runUponPressingEnter",
+    description: "Run plugin upon pressing enter on the last edited block",
     type: "boolean",
     default: true,
-    title: "Enable auto-tag on enter",
+    title: "Run upon pressing enter",
   },
   {
-    key: "useHashtag",
-    description: "Auto-tag with #tag instead of [[tag]]",
+    key: "tagAsLink",
+    description: "Auto-tag with [[tag]] instead of #tag",
     type: "boolean",
     default: false,
-    title: "Use hashtag",
+    title: "Tag as link",
   },
   {
-    key: "insertTags",
-    description: "Insert tags instead of appending",
+    key: "tagInTheBeginning",
+    description: "Insert tags in the beginning of block",
     type: "boolean",
     default: false,
-    title: "Insert tags",
+    title: "Tag in the beginning",
   },
   {
     key: "pagesToExclude",
@@ -330,10 +377,10 @@ const settings = [
   {
     key: "blocksToExclude",
     description:
-      "Regex pattern of blocks to exclude from auto-linking and auto-tagging on enter",
+      "Regex pattern of blocks to exclude from auto-linking and auto-tagging",
     type: "string",
     default: "(\\w+::)|{{.*}}",
-    title: "Blocks to exclude from auto-linking and auto-tagging on enter",
+    title: "Blocks to exclude from auto-linking and auto-tagging",
   },
 ];
 logseq.useSettingsSchema(settings);
@@ -349,10 +396,10 @@ ci
 feat
 - [x] auto-tag blocks based on linked pages by pressing enter
 - [x] auto-tag by slash command
-- [ ] auto-tag by keybinding
+- [ ] ~~auto-tag by keybinding~~
 - [x] auto-link pages by pressing enter
 - [x] auto-link by slash command
-- [ ] auto-link by keybinding
+- [ ] ~~auto-link by keybinding~~
 - [x] add auto-link first occurance only
 - [x] auto-tag with [[tag]] instead of #tag
 - [x] add autoTagOnEnter, autoLinkOnEnter, pagesToExclude, blocksToExclude, useHashtag, insertTags logic
@@ -366,6 +413,7 @@ feat
 - [x] add setting to set blocks to skip
 - [x] add setting to set pages to skip
 - [ ] add setting to set property to auto-tag on i.e. other than tags::
+- [x] run plugin by keybinding
 
 fix
 - [x] add guards to process keyup events only when editing a block
@@ -373,8 +421,8 @@ fix
 - [x] remove #Parent tag if #[[Parent/Child]] tag was added
 - [x] do not auto-link deleted pages
 - [x] skip blocks with {{*}} or *::
-- [ ] plugin continues auto-tagging with obsolete tags after they are renamed
-- [ ] new pages added as aliases to existing pages cannot be not detected
+- [ ] plugin continues auto-tagging with obsolete tags after tags are renamed
+- [ ] Non-existing pages directly added as aliases to existing pages cannot be detected
 
 perf
 - [x] use promise.all to fetch pages in parallel
