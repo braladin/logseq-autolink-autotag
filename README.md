@@ -11,6 +11,7 @@ Backstory: Inspired by the [Automatic Linker](https://github.com/sawhney17/logse
 - Run by a keybinding `Ctrl+Shift+b` (configurable)
 - Option to choose to auto-link all occurances of a page or only the first occurrence
 - Option to choose between inserting or appending tags
-- Option to choose between \[\[tag\]\] or #tag format
+- Option to choose between `[[tag]]` or `#tag` format
 - Handle newly created pages and deleted pages
 - Handle aliases
+- Handle tasks

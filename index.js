@@ -54,17 +54,27 @@ async function autoTag(block, pagesToTagsMap) {
 
   // Update content with tags
   let isUpdated = false;
-  for (const tag of cleanedUpTags) {
+  for (let tag of cleanedUpTags) {
     // Skip tag if already added
     if (content.includes(`[[${tag}]]`) || content.includes(`#${tag}`)) continue;
-    const hashtag = logseq.settings?.tagAsLink ? "" : "#";
+    // Add [[ ]] if tag contains space or tagAsLink is true
+    if (tag.includes(" ") || logseq.settings?.tagAsLink === true)
+      tag = `[[${tag}]]`;
+    // Add # if tagAsLink is false
+    if (logseq.settings?.tagAsLink === false) tag = `#${tag}`;
+    // Insert tag at the appropriate position
     if (logseq.settings?.tagInTheBeginning) {
-      content = `${hashtag}[[${tag}]] ${content}`;
+      const todoRegexWithPriority =
+        /^(TODO|LATER|NOW|DOING|IN-PROGRESS|DONE|CANCELED|CANCELLED|WAITING|WAIT)?(?:\s)?(\[#[A-C]\])?/i;
+      const match = content.match(todoRegexWithPriority);
+      if (match) {
+        content = content.replace(todoRegexWithPriority, "");
+        const taskState = match[1] ? `${match[1]} ` : "";
+        const taskPrio = match[2] ? `${match[2]} ` : "";
+        content = `${taskState}${taskPrio}${tag} ${content}`;
+      }
     } else {
-      content =
-        tag.includes(" ") || hashtag === ""
-          ? `${content} ${hashtag}[[${tag}]]`
-          : `${content} ${hashtag}${tag}`;
+      content = `${content} ${tag}`;
     }
     isUpdated = true;
   }
@@ -407,9 +417,11 @@ fix
 - [x] remove #Parent tag if #[[Parent/Child]] tag was added
 - [x] do not auto-link deleted pages
 - [x] skip blocks with {{*}} or *::
+- [x] inserting tags at the beginning of a block breaks tasks
 - [ ] plugin continues auto-tagging with obsolete tags after tags are renamed
 - [ ] Non-existing pages directly added as aliases to existing pages cannot be detected
 - [ ] plugin unaware of graph switch
+- [ ] pressing enter to select a todo priority triggers the plugin
 
 perf
 - [x] use promise.all to fetch pages in parallel
