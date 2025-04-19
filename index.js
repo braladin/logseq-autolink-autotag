@@ -1,4 +1,6 @@
 async function autoTag(block, pagesToTagsMap) {
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Starting autoTag");
   if (!block?.content) {
     if (logseq.settings.enableConsoleLogging === true)
       console.error(
@@ -7,27 +9,25 @@ async function autoTag(block, pagesToTagsMap) {
     return;
   }
 
-  if (logseq.settings.enableConsoleLogging === true)
-    console.debug("logseq-autolink-autotag: Auto-tag");
   let content = block.content;
 
-  // Log block details
   if (logseq.settings.enableConsoleLogging === true)
-    console.debug(`logseq-autolink-autotag: block.content: ${content}`);
+    console.debug(`logseq-autolink-autotag: block content: "${content}"`);
 
   // Extract linked pages from content
   const pages = content
     .match(/(?<!#)\[\[([^\]]+)\]\]/g)
     ?.map((page) => page.slice(2, -2));
 
-  if (!pages || pages.length === 0) {
+  // Return early if no pages were found in the content
+  if (!pages?.length) {
     if (logseq.settings.enableConsoleLogging === true)
-      console.debug("logseq-autolink-autotag: pages: []");
+      console.debug("logseq-autolink-autotag: linked pages: []");
     return;
   }
 
   if (logseq.settings.enableConsoleLogging === true)
-    console.debug(`logseq-autolink-autotag: pages: ${pages.join(", ")}`);
+    console.debug(`logseq-autolink-autotag: linked pages: ${pages.join(", ")}`);
 
   // Collect tags from all linked pages
   const tags = pages
@@ -78,6 +78,8 @@ async function autoTag(block, pagesToTagsMap) {
 }
 
 async function autoLink(block, allPagesSorted) {
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Starting autoLink");
   if (!block?.content) {
     if (logseq.settings.enableConsoleLogging === true)
       console.error(
@@ -85,8 +87,6 @@ async function autoLink(block, allPagesSorted) {
       );
     return;
   }
-  if (logseq.settings.enableConsoleLogging === true)
-    console.debug("logseq-autolink-autotag: Auto-link");
   let content = block.content;
 
   // Log block details
@@ -125,6 +125,8 @@ async function autoLink(block, allPagesSorted) {
 }
 
 function updateAllPagesSorted(newPageEntity, allPagesSorted) {
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Starting updateAllPagesSorted");
   // Find the correct position to insert the new page based on name length
   const newPageLength = newPageEntity.originalName?.length || 0;
 
@@ -183,9 +185,13 @@ async function getPagesToTagsMap() {
 }
 
 async function autoLinkAutoTagCallback(block, allPagesSorted, pagesToTagsMap) {
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Starting autoLinkAutoTagCallback");
   if (!block?.uuid) return;
   block = await logseq.Editor.getBlock(block.uuid);
-  // Skip block if it's excluded by user settings
+  // Skip if block is empty
+  if (!block.content) return;
+  // Skip if block is excluded by user settings
   if (new RegExp(logseq.settings.blocksToExclude).test(block.content)) return;
   if (logseq.settings.enableConsoleLogging === true)
     console.debug(
@@ -403,6 +409,7 @@ fix
 - [x] skip blocks with {{*}} or *::
 - [ ] plugin continues auto-tagging with obsolete tags after tags are renamed
 - [ ] Non-existing pages directly added as aliases to existing pages cannot be detected
+- [ ] plugin unaware of graph switch
 
 perf
 - [x] use promise.all to fetch pages in parallel
