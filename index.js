@@ -1,16 +1,19 @@
 async function autoTag(block, pagesToTagsMap) {
   if (!block?.content) {
-    console.error(
-      "logseq-autolink-autotag: Current block is empty. Type something and try again.",
-    );
+    if (logseq.settings.enableConsoleLogging === true)
+      console.error(
+        "logseq-autolink-autotag: Current block is empty. Type something and try again.",
+      );
     return;
   }
 
-  console.debug("logseq-autolink-autotag: Auto-tag");
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Auto-tag");
   let content = block.content;
 
   // Log block details
-  console.debug(`logseq-autolink-autotag: block.content: ${content}`);
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
   // Extract linked pages from content
   const pages = content
@@ -18,11 +21,13 @@ async function autoTag(block, pagesToTagsMap) {
     ?.map((page) => page.slice(2, -2));
 
   if (!pages || pages.length === 0) {
-    console.debug("logseq-autolink-autotag: pages: []");
+    if (logseq.settings.enableConsoleLogging === true)
+      console.debug("logseq-autolink-autotag: pages: []");
     return;
   }
 
-  console.debug(`logseq-autolink-autotag: pages: ${pages.join(", ")}`);
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(`logseq-autolink-autotag: pages: ${pages.join(", ")}`);
 
   // Collect tags from all linked pages
   const tags = pages
@@ -39,11 +44,13 @@ async function autoTag(block, pagesToTagsMap) {
 
   // Log found tags
   if (!cleanedUpTags || cleanedUpTags.length === 0) {
-    console.debug("logseq-autolink-autotag: tags: []");
+    if (logseq.settings.enableConsoleLogging === true)
+      console.debug("logseq-autolink-autotag: tags: []");
     return;
   }
 
-  console.debug(`logseq-autolink-autotag: tags: ${cleanedUpTags.join(", ")}`);
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(`logseq-autolink-autotag: tags: ${cleanedUpTags.join(", ")}`);
 
   // Update content with tags
   let isUpdated = false;
@@ -62,25 +69,29 @@ async function autoTag(block, pagesToTagsMap) {
     isUpdated = true;
   }
   if (isUpdated) {
-    console.info(
-      `logseq-autolink-autotag: Auto-tagged block with tags: ${cleanedUpTags.join(", ")}`,
-    );
+    if (logseq.settings.enableConsoleLogging === true)
+      console.info(
+        `logseq-autolink-autotag: Auto-tagged block with tags: ${cleanedUpTags.join(", ")}`,
+      );
     await logseq.Editor.updateBlock(block.uuid, content);
   }
 }
 
 async function autoLink(block, allPagesSorted) {
   if (!block?.content) {
-    console.error(
-      "logseq-autolink-autotag: Current block is empty. Type something and try again.",
-    );
+    if (logseq.settings.enableConsoleLogging === true)
+      console.error(
+        "logseq-autolink-autotag: Current block is empty. Type something and try again.",
+      );
     return;
   }
-  console.debug("logseq-autolink-autotag: Auto-link");
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Auto-link");
   let content = block.content;
 
   // Log block details
-  console.debug(`logseq-autolink-autotag: block.content: ${content}`);
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
   for (const page of allPagesSorted) {
     // Skip page if it found in pagesToExclude setting
@@ -103,9 +114,10 @@ async function autoLink(block, allPagesSorted) {
   }
 
   if (content !== block.content) {
-    console.info(
-      `logseq-autolink-autotag: Auto-linked pages in block: ${content}`,
-    );
+    if (logseq.settings.enableConsoleLogging === true)
+      console.info(
+        `logseq-autolink-autotag: Auto-linked pages in block: ${content}`,
+      );
     await logseq.Editor.updateBlock(block.uuid, content);
     block.content = content;
   }
@@ -175,9 +187,10 @@ async function autoLinkAutoTagCallback(block, allPagesSorted, pagesToTagsMap) {
   block = await logseq.Editor.getBlock(block.uuid);
   // Skip block if it's excluded by user settings
   if (new RegExp(logseq.settings.blocksToExclude).test(block.content)) return;
-  console.debug(
-    `logseq-autolink-autotag: Running on current block with content "${block.content}"`,
-  );
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(
+      `logseq-autolink-autotag: Running on current block with content "${block.content}"`,
+    );
   if (logseq.settings?.enableAutoLink) {
     block = await autoLink(block, allPagesSorted);
   }
@@ -222,11 +235,13 @@ async function main() {
       logseq.settings?.runUponPressingEnter === true &&
       currentBlock
     ) {
-      console.debug("logseq-autolink-autotag: Enter pressed");
+      if (logseq.settings.enableConsoleLogging === true)
+        console.debug("logseq-autolink-autotag: Enter pressed");
       autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
       return;
     }
-    console.debug("logseq-autolink-autotag: Current block updated");
+    if (logseq.settings.enableConsoleLogging === true)
+      console.debug("logseq-autolink-autotag: Current block updated");
     currentBlock = await logseq.Editor.getCurrentBlock();
   });
 
@@ -270,7 +285,8 @@ async function main() {
     }
   });
 
-  console.info("logseq-autolink-autotag: Plugin loaded");
+  if (logseq.settings.enableConsoleLogging === true)
+    console.info("logseq-autolink-autotag: Plugin loaded");
 }
 
 const settings = [
@@ -339,6 +355,13 @@ const settings = [
     default: "(\\w+::)|{{.*}}",
     title: "Blocks to exclude from auto-linking and auto-tagging",
   },
+  {
+    key: "enableConsoleLogging",
+    description: "Enables console logging",
+    type: "boolean",
+    default: false,
+    title: "Enable console logging",
+  },
 ];
 logseq.useSettingsSchema(settings);
 
@@ -385,6 +408,6 @@ perf
 - [x] use promise.all to fetch pages in parallel
 - [x] use keyup event instead of logseq.db.onchange to improve responsiveness
 - [x] use pre-constructed data structures of page names and tags instead of fetching data every time
-- [ ] make logging conditional
+- [x] make logging conditional
 
 */
