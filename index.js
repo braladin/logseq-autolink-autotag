@@ -170,30 +170,18 @@ async function getPagesToTagsMap() {
   return { allPagesSorted, pagesToTagsMap };
 }
 
-async function autoLinkAutoTagCallback(
-  cmd,
-  block,
-  allPagesSorted = [],
-  pagesToTagsMap = {},
-) {
+async function autoLinkAutoTagCallback(block, allPagesSorted, pagesToTagsMap) {
   if (!block?.uuid) return;
   block = await logseq.Editor.getBlock(block.uuid);
   // Skip block if it's excluded by user settings
   if (new RegExp(logseq.settings.blocksToExclude).test(block.content)) return;
-  if (cmd === "l") {
-    command = "auto-link";
-  } else if (cmd === "t") {
-    command = "auto-tag";
-  } else if (cmd === "lt") {
-    command = "auto-link auto-tag";
-  }
   console.debug(
-    `logseq-autolink-autotag: Running ${command} on current block with content "${block.content}"`,
+    `logseq-autolink-autotag: Running on current block with content "${block.content}"`,
   );
-  if (cmd.includes("l") && logseq.settings?.enableAutoLink) {
+  if (logseq.settings?.enableAutoLink) {
     block = await autoLink(block, allPagesSorted);
   }
-  if (cmd.includes("t") && logseq.settings?.enableAutoTag) {
+  if (logseq.settings?.enableAutoTag) {
     await autoTag(block, pagesToTagsMap);
   }
   block = undefined;
@@ -203,29 +191,8 @@ async function main() {
   let { allPagesSorted, pagesToTagsMap } = await getPagesToTagsMap();
   let currentBlock;
 
-  logseq.Editor.registerSlashCommand("Auto-tag", async () => {
-    await autoLinkAutoTagCallback(
-      "t",
-      currentBlock,
-      (pagesToTagsMap = pagesToTagsMap),
-    );
-  });
-
-  logseq.Editor.registerSlashCommand("Auto-link", async () => {
-    await autoLinkAutoTagCallback(
-      "l",
-      currentBlock,
-      (allPagesSorted = allPagesSorted),
-    );
-  });
-
   logseq.Editor.registerSlashCommand("Auto-link Auto-tag", async () => {
-    await autoLinkAutoTagCallback(
-      "lt",
-      currentBlock,
-      allPagesSorted,
-      pagesToTagsMap,
-    );
+    await autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
   });
 
   logseq.App.registerCommandShortcut(
@@ -233,12 +200,7 @@ async function main() {
       binding: logseq.settings?.keybinding,
     },
     async () => {
-      autoLinkAutoTagCallback(
-        "lt",
-        currentBlock,
-        allPagesSorted,
-        pagesToTagsMap,
-      );
+      autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
     },
   );
 
@@ -261,12 +223,7 @@ async function main() {
       currentBlock
     ) {
       console.debug("logseq-autolink-autotag: Enter pressed");
-      autoLinkAutoTagCallback(
-        "lt",
-        currentBlock,
-        allPagesSorted,
-        pagesToTagsMap,
-      );
+      autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
       return;
     }
     console.debug("logseq-autolink-autotag: Current block updated");
