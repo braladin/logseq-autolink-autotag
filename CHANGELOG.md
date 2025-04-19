@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.1](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.0...v1.1.1) (2025-04-19)
+
+
+### Bug Fixes
+
+* inserting tags at the beginning of a block breaks tasks ([33bea47](https://github.com/braladin/logseq-autolink-autotag/commit/33bea4784b63f6f5f1238b43b06c5aa4970ac80d))
+* typo in blocksToExclude setting's default value ([5a32c00](https://github.com/braladin/logseq-autolink-autotag/commit/5a32c00ca9d4c43d90cca02cb45733c3d4099d32))
+
+
+### Performance Improvements
+
+* make console logging optional ([b288c67](https://github.com/braladin/logseq-autolink-autotag/commit/b288c67e16462f04e0062e3c9495386c4df66342))
+* use pre-constructed data structures of page names and tags instead of fetching data every time ([821f810](https://github.com/braladin/logseq-autolink-autotag/commit/821f8105343a3ed14f4d309880092c211330a18b))
+
 ## [1.1.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.0.0...v1.1.0) (2025-04-17)
 
 
