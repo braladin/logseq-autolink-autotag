@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.1...v1.1.2) (2025-04-20)
+
+
+### Bug Fixes
+
+* prevent overwriting alias tags ([a55ba1e](https://github.com/braladin/logseq-autolink-autotag/commit/a55ba1e5e817dfac1ef93173d8ec8b748a843a3f))
+
 ## [1.1.1](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.0...v1.1.1) (2025-04-19)
 
 
