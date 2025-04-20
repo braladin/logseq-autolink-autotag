@@ -43,7 +43,7 @@ async function autoTag(block, pagesToTagsMap) {
   );
 
   // Log found tags
-  if (!cleanedUpTags || cleanedUpTags.length === 0) {
+  if (!cleanedUpTags?.length) {
     if (logseq.settings.enableConsoleLogging === true)
       console.debug("logseq-autolink-autotag: tags: []");
     return;
@@ -166,16 +166,23 @@ async function getPagesToTagsMap() {
   const pageEntities = await logseq.Editor.getAllPages();
   const pagesToTagsMap = {};
 
+  // Process pages
   for (const page of pageEntities) {
     // Skip journal pages
     if (page["journal?"] === true) continue;
 
-    // Store the page name and tags
+    // Store page names and tags
     pagesToTagsMap[page.originalName] = page.properties?.tags
       ? page.properties?.tags
       : undefined;
+  }
 
-    // Store page aliases and assign them the same tags as the page
+  // Process aliases in a separate loop to avoid overwriting tags
+  for (const page of pageEntities) {
+    // Skip journal pages
+    if (page["journal?"] === true) continue;
+
+    // Store alias names with the tags of the pages they point to
     if (page.properties?.alias) {
       for (const alias of page.properties.alias) {
         pagesToTagsMap[alias] = page.properties?.tags
@@ -421,7 +428,8 @@ fix
 - [ ] plugin continues auto-tagging with obsolete tags after tags are renamed
 - [ ] Non-existing pages directly added as aliases to existing pages cannot be detected
 - [ ] plugin unaware of graph switch
-- [ ] pressing enter to select a todo priority triggers the plugin
+- [x] pressing enter to select a todo priority triggers the plugin
+- [x] prevent overwriting alias tags
 
 perf
 - [x] use promise.all to fetch pages in parallel
