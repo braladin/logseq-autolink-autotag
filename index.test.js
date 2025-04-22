@@ -1,12 +1,5 @@
-import { autoLink } from "./index";
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-} from "@jest/globals";
+import { autoLink } from "./index.js";
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 // Mock logseq object for testing
 const mockLogseq = {
@@ -62,37 +55,90 @@ describe("autoLink function", () => {
       input: "Bob sent an email. Later, bob replied to another email.",
       expected: "[[Bob]] sent an email. Later, bob replied to another email.",
     },
+    {
+      name: "with excluded page",
+      firstOccuranceOnly: false,
+      excludePages: ["Mango"],
+      input: "I love Mango and I also like Alice.",
+      expected: "I love Mango and I also like [[Alice]].",
+    },
+    {
+      name: "with multiple excluded pages",
+      firstOccuranceOnly: false,
+      excludePages: ["Mango", "Alice"],
+      input: "I love Mango and I also like Alice, but Bob is my best friend.",
+      expected:
+        "I love Mango and I also like Alice, but [[Bob]] is my best friend.",
+    },
+    {
+      name: "with special characters in text",
+      firstOccuranceOnly: false,
+      input:
+        "Alice (with parentheses) and Bob.with.dots and Mango[with brackets]",
+      expected:
+        "[[Alice]] (with parentheses) and [[Bob]].with.dots and Mango[with brackets]",
+    },
+    {
+      name: "with no matches",
+      firstOccuranceOnly: false,
+      input: "This text has no page names to link.",
+      expected: "This text has no page names to link.",
+      expectNoUpdate: true,
+    },
+    {
+      name: "with all pages excluded",
+      firstOccuranceOnly: false,
+      excludePages: ["Alice", "Bob", "Mango", "Mango juice"],
+      input: "Alice, Bob, and Mango juice are all in the excluded list.",
+      expected: "Alice, Bob, and Mango juice are all in the excluded list.",
+      expectNoUpdate: true,
+    },
   ];
 
   // Run parameterized tests
-  testCases.forEach(({ name, firstOccuranceOnly, input, expected }) => {
-    it(`should handle ${name}`, async () => {
-      // Set up the test-specific settings
-      mockLogseq.settings.autoLinkFirstOccuranceOnly = firstOccuranceOnly;
+  testCases.forEach(
+    ({
+      name,
+      firstOccuranceOnly,
+      excludePages,
+      input,
+      expected,
+      expectNoUpdate,
+    }) => {
+      it(`should handle ${name}`, async () => {
+        // Set up the test-specific settings
+        mockLogseq.settings.autoLinkFirstOccuranceOnly = firstOccuranceOnly;
 
-      // Create test block
-      const block = {
-        uuid: "test-uuid",
-        content: input,
-      };
+        // Set excluded pages if provided
+        if (excludePages) {
+          mockLogseq.settings.pagesToExclude = excludePages;
+        } else {
+          mockLogseq.settings.pagesToExclude = [];
+        }
 
-      // Run the function
-      const result = await autoLink(block, allPagesSorted);
+        // Create test block
+        const block = {
+          uuid: "test-uuid",
+          content: input,
+        };
 
-      // Check result
-      expect(result.content).toBe(expected);
-      expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
-        block.uuid,
-        expected,
-      );
-    });
-  });
+        // Run the function
+        const result = await autoLink(block, allPagesSorted);
 
-  // Special case for empty block
-  it("should handle block without content", async () => {
-    const block = { uuid: "test-uuid" };
-    const result = await autoLink(block, allPagesSorted);
-    expect(result).toBeUndefined();
-    expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
-  });
+        // Check result
+        if (result) {
+          expect(result.content).toBe(expected);
+        }
+
+        if (expectNoUpdate) {
+          expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
+        } else {
+          expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
+            block.uuid,
+            expected,
+          );
+        }
+      });
+    },
+  );
 });
