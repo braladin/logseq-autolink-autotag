@@ -1,5 +1,12 @@
-import { autoLink } from "./index.js";
-import { jest } from "@jest/globals";
+import { autoLink } from "./index";
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
 
 // Mock logseq object for testing
 const mockLogseq = {
@@ -14,8 +21,8 @@ const mockLogseq = {
     getCurrentBlock: jest.fn(),
     getBlock: jest.fn(),
   },
-  useSettingsSchema: jest.fn(), // Add mock for useSettingsSchema
-  ready: (fn) => Promise.resolve(fn()), // Add mock for ready function
+  useSettingsSchema: jest.fn(),
+  ready: (fn) => Promise.resolve(fn()),
   App: {
     registerCommandShortcut: jest.fn(),
   },
@@ -26,23 +33,66 @@ const mockLogseq = {
 
 global.logseq = mockLogseq;
 
-import { test, expect } from "@jest/globals";
-
 const allPagesSorted = ["Mango juice", "Alice", "Mango", "Bob"];
 
-// Test autoLink
-test("autoLink", async () => {
-  // Create a block object with content as expected by the function
-  const block = {
-    uuid: "test-uuid",
-    content: "Alice and bob like to drink mango juice.",
-  };
+describe("autoLink function", () => {
+  // Reset mocks and settings before each test
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  // Call autoLink with the block object and sorted pages
-  const result = await autoLink(block, allPagesSorted);
+  // Test cases as an array of objects for parameterized testing
+  const testCases = [
+    {
+      name: "basic functionality",
+      firstOccuranceOnly: false,
+      input: "Alice and bob like to drink mango juice.",
+      expected: "[[Alice]] and [[Bob]] like to drink [[Mango juice]].",
+    },
+    {
+      name: "with firstOccuranceOnly set to false",
+      firstOccuranceOnly: false,
+      input: "What's better than mango juice? Mango juice is the best!",
+      expected:
+        "What's better than [[Mango juice]]? [[Mango juice]] is the best!",
+    },
+    {
+      name: "with firstOccuranceOnly set to true",
+      firstOccuranceOnly: true,
+      input: "Bob sent an email. Later, bob replied to another email.",
+      expected: "[[Bob]] sent an email. Later, bob replied to another email.",
+    },
+  ];
 
-  // Expect the block's content to have been updated with links
-  expect(result.content).toBe(
-    "[[Alice]] and [[Bob]] like to drink [[Mango juice]].",
-  );
+  // Run parameterized tests
+  testCases.forEach(({ name, firstOccuranceOnly, input, expected }) => {
+    it(`should handle ${name}`, async () => {
+      // Set up the test-specific settings
+      mockLogseq.settings.autoLinkFirstOccuranceOnly = firstOccuranceOnly;
+
+      // Create test block
+      const block = {
+        uuid: "test-uuid",
+        content: input,
+      };
+
+      // Run the function
+      const result = await autoLink(block, allPagesSorted);
+
+      // Check result
+      expect(result.content).toBe(expected);
+      expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
+        block.uuid,
+        expected,
+      );
+    });
+  });
+
+  // Special case for empty block
+  it("should handle block without content", async () => {
+    const block = { uuid: "test-uuid" };
+    const result = await autoLink(block, allPagesSorted);
+    expect(result).toBeUndefined();
+    expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
+  });
 });
