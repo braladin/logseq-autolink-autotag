@@ -143,7 +143,7 @@ export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   let insertIndex = 0;
   while (
     insertIndex < allPagesSorted.length &&
-    (allPagesSorted[insertIndex].name?.length || 0) > newPageLength
+    (allPagesSorted[insertIndex].length || 0) > newPageLength
   ) {
     insertIndex++;
   }

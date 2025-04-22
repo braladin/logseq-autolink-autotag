@@ -34,8 +34,8 @@ async function main() {
     // Skip keyup events that do not occur when editing blocks
     // or when modifier keys are pressed
     if (
-      event?.target?.tagName.toLowerCase() !== "textarea" ||
-      !event.target.getAttribute("aria-label") === "editing block" ||
+      event.target?.tagName?.toLowerCase() !== "textarea" ||
+      event.target?.getAttribute("aria-label") !== "editing block" ||
       event.altKey === true ||
       event.ctrlKey === true ||
       event.metaKey === true ||
@@ -81,8 +81,7 @@ async function main() {
         block.originalName !== undefined &&
         block["journal?"] === false,
     );
-    if (!potentiallyDeletedPages || potentiallyDeletedPages.length === 0)
-      return;
+    if (!potentiallyDeletedPages?.length) return;
     // Process each potentially deleted page
     for (const page of potentiallyDeletedPages) {
       // Get the page to check if it still exists
