@@ -12,7 +12,8 @@ export default {
     "!**/node_modules/**",
     "!**/coverage/**",
     "!jest.config.js",
-    "!lsplugin.user.js"
+    "!src/lsplugin.user.js",
+    "!src/main.js", // TODO: Remove this after finding a way to test main.js with Jest
   ],
   coverageReporters: ["text", "lcov", "clover"],
 };

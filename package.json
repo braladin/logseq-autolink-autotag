@@ -4,7 +4,7 @@
   "description": "A Logseq plugin to auto-link pages and auto-tag blocks",
   "author": "braladin",
   "type": "module",
-  "main": "index.html",
+  "main": "src/index.html",
   "logseq": {
     "id": "logseq-autolink-autotag",
     "title": "Auto-Link Auto-Tag",

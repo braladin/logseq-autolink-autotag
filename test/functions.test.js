@@ -1,4 +1,4 @@
-import "./index.js";
+import { autoLink } from "../src/functions.js";
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 // Mock logseq object for testing
