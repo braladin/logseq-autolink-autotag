@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.2...v1.1.3) (2025-04-22)
+
+
+### Bug Fixes
+
+* change plugin entry ([0d265f2](https://github.com/braladin/logseq-autolink-autotag/commit/0d265f2c8716f3adbf034848fb53adf2e61d959f))
+* change plugin entry ([1412ba4](https://github.com/braladin/logseq-autolink-autotag/commit/1412ba40c075ef5546179ed86d063fe295b5c8ad))
+
 ## [1.1.2](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.1...v1.1.2) (2025-04-20)
 
 
