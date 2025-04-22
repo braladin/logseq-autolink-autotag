@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.3...v1.1.4) (2025-04-22)
+
+
+### Performance Improvements
+
+* lazy load plugin data to reduce plugin loading time ([6a5e846](https://github.com/braladin/logseq-autolink-autotag/commit/6a5e8466dcb7e92775408f81c56e710bfd401c2a))
+
 ## [1.1.3](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.2...v1.1.3) (2025-04-22)
 
 
