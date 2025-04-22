@@ -224,8 +224,16 @@ async function autoLinkAutoTagCallback(block, allPagesSorted, pagesToTagsMap) {
 }
 
 async function main() {
-  let { allPagesSorted, pagesToTagsMap } = await getPagesToTagsMap();
+  let allPagesSorted = [];
+  let pagesToTagsMap = {};
   let currentBlock;
+
+  // Initialize data during idle time to reduce plugin loading time
+  window.parent.requestIdleCallback(async () => {
+    const result = await getPagesToTagsMap();
+    allPagesSorted = result.allPagesSorted;
+    pagesToTagsMap = result.pagesToTagsMap;
+  });
 
   logseq.Editor.registerSlashCommand("Auto-link Auto-tag", async () => {
     await autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
@@ -442,5 +450,6 @@ perf
 - [x] use keyup event instead of logseq.db.onchange to improve responsiveness
 - [x] use pre-constructed data structures of page names and tags instead of fetching data every time
 - [x] make logging conditional
+- [x] lazy load plugin data to reduce plugin loading time
 
 */
