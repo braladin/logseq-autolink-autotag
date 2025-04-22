@@ -386,9 +386,15 @@ const settings = [
     title: "Enable console logging",
   },
 ];
-logseq.useSettingsSchema(settings);
 
-logseq.ready(main).catch(console.error);
+// Only initialize the plugin if we're in the Logseq environment
+if (typeof logseq !== "undefined") {
+  logseq.useSettingsSchema(settings);
+  logseq.ready(main).catch(console.error);
+}
+
+// Export functions for testing
+export { autoLink };
 
 /* TODO
 
