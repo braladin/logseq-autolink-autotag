@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.5](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.4...v1.1.5) (2025-04-22)
+
+
+### Bug Fixes
+
+* fix property access in sorting and keyup event checks ([f0e87f5](https://github.com/braladin/logseq-autolink-autotag/commit/f0e87f5c5403aa315f1b15811924b72c1dafb951))
+
 ## [1.1.4](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.3...v1.1.4) (2025-04-22)
 
 
