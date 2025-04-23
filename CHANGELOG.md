@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.6](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.5...v1.1.6) (2025-04-23)
+
+
+### Bug Fixes
+
+* github workflows ([#10](https://github.com/braladin/logseq-autolink-autotag/issues/10)) ([19b261e](https://github.com/braladin/logseq-autolink-autotag/commit/19b261ec0e5965aa4cb76a5fd2d8bad55b4c0361))
+
 ## [1.1.5](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.4...v1.1.5) (2025-04-22)
 
 
