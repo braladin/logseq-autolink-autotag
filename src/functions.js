@@ -42,7 +42,7 @@ export async function autoTag(block, pagesToTagsMap) {
     (tag) => uniqueTags.filter((t) => t.includes(tag + "/")).length === 0,
   );
 
-  // Log found tags
+  // Return early if no tags were found
   if (!cleanedUpTags?.length) {
     if (logseq.settings.enableConsoleLogging === true)
       console.debug("logseq-autolink-autotag: tags: []");
@@ -53,38 +53,40 @@ export async function autoTag(block, pagesToTagsMap) {
     console.debug(`logseq-autolink-autotag: tags: ${cleanedUpTags.join(", ")}`);
 
   // Update content with tags
-  let isUpdated = false;
+  let tagsString = "";
   for (let tag of cleanedUpTags) {
-    // Skip tag if already added
+    // Skip tag if already exists in block content
     if (content.includes(`[[${tag}]]`) || content.includes(`#${tag}`)) continue;
     // Add [[ ]] if tag contains space or tagAsLink is true
     if (tag.includes(" ") || logseq.settings?.tagAsLink === true)
       tag = `[[${tag}]]`;
     // Add # if tagAsLink is false
     if (logseq.settings?.tagAsLink === false) tag = `#${tag}`;
-    // Insert tag at the appropriate position
-    if (logseq.settings?.tagInTheBeginning) {
-      const todoRegexWithPriority =
-        /^(TODO|LATER|NOW|DOING|IN-PROGRESS|DONE|CANCELED|CANCELLED|WAITING|WAIT)?(?:\s)?(\[#[A-C]\])?/i;
-      const match = content.match(todoRegexWithPriority);
-      if (match) {
-        content = content.replace(todoRegexWithPriority, "");
-        const taskState = match[1] ? `${match[1]} ` : "";
-        const taskPrio = match[2] ? `${match[2]} ` : "";
-        content = `${taskState}${taskPrio}${tag} ${content}`;
-      }
-    } else {
-      content = `${content} ${tag}`;
+    // Add tag to tagsString
+    tagsString += tag + " ";
+  }
+  tagsString = tagsString.trim();
+  if (logseq.settings?.tagInTheBeginning) {
+    const todoRegexWithPriority =
+      /^(TODO|LATER|NOW|DOING|IN-PROGRESS|DONE|CANCELED|CANCELLED|WAITING|WAIT)?(?:\s)?(\[#[A-C]\])?/i;
+    const match = content.match(todoRegexWithPriority);
+    if (match) {
+      content = content.replace(todoRegexWithPriority, "").trim();
+      const taskState = match[1] ? `${match[1]} ` : "";
+      const taskPrio = match[2] ? `${match[2]} ` : "";
+      content = `${taskState}${taskPrio}${tagsString} ${content}`;
     }
-    isUpdated = true;
+  } else {
+    content = `${content} ${tagsString}`;
   }
-  if (isUpdated) {
-    if (logseq.settings.enableConsoleLogging === true)
-      console.info(
-        `logseq-autolink-autotag: Auto-tagged block with tags: ${cleanedUpTags.join(", ")}`,
-      );
-    await logseq.Editor.updateBlock(block.uuid, content);
-  }
+
+  // Update block with new content
+  await logseq.Editor.updateBlock(block.uuid, content);
+
+  if (logseq.settings.enableConsoleLogging === true)
+    console.info(
+      `logseq-autolink-autotag: Auto-tagged block with tags: ${cleanedUpTags.join(", ")}`,
+    );
 }
 
 export async function autoLink(block, allPagesSorted) {

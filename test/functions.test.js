@@ -1,4 +1,4 @@
-import { autoLink } from "../src/functions.js";
+import { autoLink, autoTag } from "../src/functions.js";
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 // Mock logseq object for testing
@@ -129,6 +129,111 @@ describe("autoLink function", () => {
         if (result) {
           expect(result.content).toBe(expected);
         }
+
+        if (expectNoUpdate) {
+          expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
+        } else {
+          expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
+            block.uuid,
+            expected,
+          );
+        }
+      });
+    },
+  );
+});
+
+const pagesToTagsMap = {
+  Alice: ["friend"],
+  Bob: ["friend", "colleague"],
+  Mango: ["fruit"],
+  "Mango juice": ["drink", "fruit juice"],
+};
+
+describe("autoTag function", () => {
+  // Reset mocks and settings before each test
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Test cases as an array of objects for parameterized testing
+  const testCases = [
+    {
+      name: "a block with links to pages with a single tag",
+      tagAsLink: false,
+      tagInTheBeginning: false,
+      input: "[[Alice]] likes [[Mango]].",
+      expected: "[[Alice]] likes [[Mango]]. #friend #fruit",
+    },
+    {
+      name: "a block with links to pages with multiple tags",
+      tagAsLink: false,
+      tagInTheBeginning: false,
+      input: "[[Bob]] likes [[Mango juice]].",
+      expected:
+        "[[Bob]] likes [[Mango juice]]. #friend #colleague #drink #[[fruit juice]]",
+    },
+    {
+      name: "tagAsLink enabled",
+      tagAsLink: true,
+      tagInTheBeginning: false,
+      input: "[[Alice]] likes [[Mango]].",
+      expected: "[[Alice]] likes [[Mango]]. [[friend]] [[fruit]]",
+    },
+    {
+      name: "tagInTheBeginning enabled",
+      tagAsLink: false,
+      tagInTheBeginning: true,
+      input: "[[Alice]] likes [[Mango]].",
+      expected: "#fruit #friend [[Alice]] likes [[Mango]].",
+    },
+    {
+      name: "task block & tagInTheBeginning enabled",
+      tagAsLink: false,
+      tagInTheBeginning: true,
+      input: "TODO [#B] Tell [[Alice]] to bring some [[Mango]].",
+      expected:
+        "TODO [#B] #fruit #friend Tell [[Alice]] to bring some [[Mango]].",
+    },
+    {
+      name: "a block with no links",
+      tagAsLink: false,
+      tagInTheBeginning: false,
+      input: "Alice likes mango juice.",
+      expectNoUpdate: true,
+    },
+    {
+      name: "a block with a link to a non existing page",
+      tagAsLink: false,
+      tagInTheBeginning: false,
+      input: "[[John]] likes [[Mango]].",
+      expected: "[[John]] likes [[Mango]]. #fruit",
+    },
+  ];
+
+  // Run parameterized tests
+  testCases.forEach(
+    ({
+      name,
+      tagAsLink,
+      tagInTheBeginning,
+      input,
+      expected,
+      expectNoUpdate,
+    }) => {
+      it(`should handle ${name}`, async () => {
+        // Set up the test-specific settings
+        mockLogseq.settings.tagAsLink = tagAsLink;
+        mockLogseq.settings.tagInTheBeginning = tagInTheBeginning;
+
+        // Create test block
+        const block = {
+          uuid: "test-uuid",
+          content: input,
+        };
+
+        // Run the function
+        await autoTag(block, pagesToTagsMap);
 
         if (expectNoUpdate) {
           expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
