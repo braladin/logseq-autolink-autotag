@@ -30,7 +30,7 @@ jobs:
           VERSION=${{ steps.release.outputs.tag_name }}
           ZIP_NAME="logseq-autolink-autotag-${VERSION}.zip"
           echo "Creating ${ZIP_NAME}..."
-          zip -r ${ZIP_NAME} index.html lsplugin.user.js index.js package.json LICENSE README.md
+          zip -r ${ZIP_NAME} package.json src/ LICENSE README.md
 
       - name: Upload release asset
         if: ${{ steps.release.outputs.release_created }}
