@@ -217,11 +217,14 @@ fix
 - [x] do not auto-link deleted pages
 - [x] skip blocks with {{*}} or *::
 - [x] inserting tags at the beginning of a block breaks tasks
-- [ ] plugin continues auto-tagging with obsolete tags after tags are renamed
-- [ ] Non-existing pages directly added as aliases to existing pages cannot be detected
-- [ ] plugin unaware of graph switch
 - [x] pressing enter to select a todo priority triggers the plugin
 - [x] prevent overwriting alias tags
+- [x] auto-link pages surrounded by () "" or ''
+- [x] handle more cases when updating page tags
+- [x] separate tag string building and insertion to eliminate code redundancy
+- [ ] Detect when a tag's page is renamed and update plugin data
+- [ ] Detect when user switches the graph and rebuild plugin data
+- [ ] Unregister keybinding when plugin is disabled
 
 perf
 - [x] use promise.all to fetch pages in parallel

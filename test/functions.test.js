@@ -1,12 +1,14 @@
-import { autoLink, autoTag, updatePagesToTagsMap } from "../src/functions.js";
+import * as functions from "../src/functions.js";
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 // Default logseq settings to use for each test
 const DEFAULT_SETTINGS = {
-  enableConsoleLogging: false,
+  enableConsoleLogging: true,
   enableAutoLink: true,
+  enableAutoTag: true,
   autoLinkFirstOccuranceOnly: false,
-  pagesToExclude: [],
+  pagesToExclude: "card",
+  blocksToExclude: "(\\w+::)|{{.*}}",
   tagAsLink: false,
   tagInTheBeginning: false,
 };
@@ -117,7 +119,7 @@ describe("autoLink function", () => {
       };
 
       // Run the function
-      const result = await autoLink(block, allPagesSorted);
+      const result = await functions.autoLink(block, allPagesSorted);
 
       // Check result
       if (expected) {
@@ -218,7 +220,7 @@ describe("autoTag function", () => {
       };
 
       // Run the function
-      await autoTag(block, pagesToTagsMap);
+      await functions.autoTag(block, pagesToTagsMap);
 
       if (expected) {
         expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
@@ -236,14 +238,12 @@ describe("updatePagesToTagsMap function", () => {
   // Reset mocks and settings before each test
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLogseq.settings = { ...DEFAULT_SETTINGS };
   });
 
   // Test cases as an array of objects for parameterized testing
   const testCases = [
     {
       name: "updating a page containing a single tag",
-      settings: {},
       input: {
         block: { content: "tags:: person" },
         page: { originalName: "Alice" },
@@ -253,7 +253,6 @@ describe("updatePagesToTagsMap function", () => {
     },
     {
       name: "updating a page containing multiple tags",
-      settings: {},
       input: {
         block: {
           content: "tags:: #person, [[friend]], [[co worker]], #[[big family]]",
@@ -265,7 +264,6 @@ describe("updatePagesToTagsMap function", () => {
     },
     {
       name: "updating a page containing tags then aliases",
-      settings: {},
       input: {
         block: {
           content: "tags:: #person\naliases:: Al",
@@ -277,7 +275,6 @@ describe("updatePagesToTagsMap function", () => {
     },
     {
       name: "updating a page containing aliases then tags",
-      settings: {},
       input: {
         block: {
           content: "aliases:: Al\ntags:: #person",
@@ -289,7 +286,6 @@ describe("updatePagesToTagsMap function", () => {
     },
     {
       name: "not updating a page containing aliases and no tags",
-      settings: {},
       input: {
         block: {
           content: "aliases:: Al",
@@ -304,19 +300,254 @@ describe("updatePagesToTagsMap function", () => {
   // Run parameterized tests
   testCases.forEach(({ name, settings, input, expected }) => {
     it(`should handle ${name}`, async () => {
+      // Create a fresh copy of pagesToTagsMap for this test
+      const testMap = JSON.parse(JSON.stringify(pagesToTagsMap));
+
+      // Run the function
+      functions.updatePagesToTagsMap(input.block, input.page, testMap);
+
+      // Verify the result
+      expect(testMap[input.page.originalName]).toEqual(expected);
+    });
+  });
+});
+
+describe("updateAllPagesSorted function", () => {
+  // Reset mocks and settings before each test
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Test cases as an array of objects for parameterized testing
+  const testCases = [
+    {
+      name: "adding a new page",
+      input: {
+        page: { originalName: "John" },
+        allPagesSorted: ["Alice", "Bob"],
+      },
+      expected: ["Alice", "John", "Bob"],
+    },
+    {
+      name: "adding a first page in a graph",
+      input: {
+        page: { originalName: "John" },
+        allPagesSorted: [],
+      },
+      expected: ["John"],
+    },
+    {
+      name: "adding a page with the longest name in the beginning",
+      input: {
+        page: { originalName: "John" },
+        allPagesSorted: ["Bob", "Lu"],
+      },
+      expected: ["John", "Bob", "Lu"],
+    },
+    {
+      name: "adding a page with the shortest name in the end",
+      input: {
+        page: { originalName: "Lu" },
+        allPagesSorted: ["John", "Bob"],
+      },
+      expected: ["John", "Bob", "Lu"],
+    },
+    {
+      name: "not adding a page with no name",
+      input: {
+        page: { originalName: "" },
+        allPagesSorted: ["John", "Bob"],
+      },
+      expected: ["John", "Bob"],
+    },
+  ];
+
+  // Run parameterized tests
+  testCases.forEach(({ name, input, expected }) => {
+    it(`should handle ${name}`, async () => {
+      // Create a fresh copy of allPagesSorted for this test
+      const testAllPagesSorted = [...input.allPagesSorted];
+
+      // Run the function
+      functions.updateAllPagesSorted(input.page, testAllPagesSorted);
+
+      // Verify the result
+      expect(testAllPagesSorted).toEqual(expected);
+    });
+  });
+});
+
+describe("getPagesToTagsMap function", () => {
+  // Reset mocks
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Setup mock data
+  const getAllPagesMockData = [
+    {
+      originalName: "John",
+      properties: {
+        tags: ["tag1", "tag2"],
+      },
+    },
+    {
+      originalName: "Alice",
+      properties: {
+        tags: ["tag3", "tag4"],
+        alias: ["Al"],
+      },
+    },
+    {
+      originalName: "Thursday, 24.04.2025",
+      "journal?": true,
+    },
+    {
+      originalName: "Bob",
+      properties: {
+        tags: ["tag5"],
+      },
+    },
+  ];
+
+  // Test cases as an array of objects for parameterized testing
+  const testCases = [
+    {
+      name: "adding a new page",
+      mock: {
+        getAllPages: getAllPagesMockData,
+      },
+      expected: {
+        allPagesSorted: ["Alice", "John", "Bob", "Al"],
+        pagesToTagsMap: {
+          Alice: ["tag3", "tag4"],
+          John: ["tag1", "tag2"],
+          Bob: ["tag5"],
+          Al: ["tag3", "tag4"],
+        },
+      },
+    },
+  ];
+
+  // Run tests cases
+  testCases.forEach(({ name, mock, expected }) => {
+    it(`should handle ${name}`, async () => {
+      // Mock logseq.Editor.getAllPages()
+      mockLogseq.Editor.getAllPages = jest
+        .fn()
+        .mockResolvedValue(mock.getAllPages);
+
+      // Run the function
+      const result = await functions.getPagesToTagsMap();
+
+      // Verify the result
+      expect(result).toMatchObject(expected);
+    });
+  });
+});
+
+describe("autoLinkAutoTagCallback function", () => {
+  // Reset mocks and settings before each test
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLogseq.settings = { ...DEFAULT_SETTINGS };
+  });
+
+  // Setup test cases
+  const testCases = [
+    {
+      name: "tagging a block with single-word tags",
+      input: {
+        block: {
+          uuid: "test-uuid",
+          content: "[[Alice]] likes Mango.",
+        },
+      },
+      settings: {
+        enableAutoLink: false,
+      },
+    },
+    {
+      name: "tagging a block with single-word tags",
+      input: {
+        block: {
+          uuid: "test-uuid",
+          content: "Alice likes Mango.",
+        },
+      },
+      settings: {
+        enableAutoTag: false,
+      },
+    },
+    {
+      name: "tagging a block with single-word tags",
+      input: {
+        block: {
+          uuid: "test-uuid",
+          content: "Alice likes Mango.",
+        },
+      },
+      settings: {
+        enableAutoTag: false,
+        enableAutoLink: false,
+      },
+    },
+    {
+      name: "tagging a block with single-word tags",
+      input: {
+        block: {
+          uuid: "test-uuid",
+          content: "Alice likes Mango.",
+        },
+      },
+    },
+    {
+      name: "not processing a block which matches blocksToExclude setting",
+      input: {
+        block: {
+          uuid: "test-uuid",
+          content: "tags:: person",
+        },
+      },
+    },
+  ];
+
+  // Run tests cases
+  testCases.forEach(({ name, settings, input, expected }) => {
+    it(`should handle ${name}`, async () => {
       // Apply test settings if provided
       if (settings) {
         mockLogseq.settings = { ...DEFAULT_SETTINGS, ...settings };
       }
 
-      // Create a fresh copy of pagesToTagsMap for this test
-      const testMap = JSON.parse(JSON.stringify(pagesToTagsMap));
+      // Mock logseq.editor.getBlock
+      mockLogseq.Editor.getBlock = jest.fn().mockResolvedValue(input.block);
 
       // Run the function
-      updatePagesToTagsMap(input.block, input.page, testMap);
+      await functions.autoLinkAutoTagCallback(
+        input.block,
+        allPagesSorted,
+        pagesToTagsMap,
+      );
 
       // Verify the result
-      expect(testMap[input.page.originalName]).toEqual(expected);
+      if (input.block.content.startsWith("tags::")) {
+        expect(logseq.Editor.updateBlock).not.toHaveBeenCalled();
+        return;
+      }
+      if (
+        mockLogseq.settings.enableAutoLink &&
+        mockLogseq.settings.enableAutoTag
+      ) {
+        expect(logseq.Editor.updateBlock).toHaveBeenCalledTimes(2);
+      } else if (
+        mockLogseq.settings.enableAutoLink ||
+        mockLogseq.settings.enableAutoTag
+      ) {
+        expect(logseq.Editor.updateBlock).toHaveBeenCalledTimes(1);
+      } else {
+        expect(logseq.Editor.updateBlock).not.toHaveBeenCalled();
+      }
     });
   });
 });

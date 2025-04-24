@@ -144,7 +144,7 @@ export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
     console.debug("logseq-autolink-autotag: Starting updateAllPagesSorted");
   // Find the correct position to insert the new page based on name length
   const newPageLength = newPageEntity.originalName?.length || 0;
-
+  if (newPageLength === 0) return;
   let insertIndex = 0;
   while (
     insertIndex < allPagesSorted.length &&
