@@ -53,54 +53,89 @@ describe("autoLink function", () => {
   const testCases = [
     {
       name: "auto-linking pages",
-      input: "Alice and bob like to drink mango juice.",
+      input: {
+        uuid: "test-uuid",
+        content: "Alice and bob like to drink mango juice.",
+      },
       expected: "[[Alice]] and [[Bob]] like to drink [[Mango juice]].",
     },
     {
       name: "auto-linking pages with namespaces",
-      input: "Person/Crystal Clear likes crystal clear jewelry.",
+      settings: { enableConsoleLogging: false },
+      input: {
+        uuid: "test-uuid",
+        content: "Person/Crystal Clear likes crystal clear jewelry.",
+      },
       expected: "[[Person/Crystal Clear]] likes [[Crystal]] clear jewelry.",
     },
     {
       name: "auto-linking pages occurring multiple times",
-      input: "What's better than mango juice? Mango juice is the best!",
+      input: {
+        uuid: "test-uuid",
+        content: "What's better than mango juice? Mango juice is the best!",
+      },
       expected:
         "What's better than [[Mango juice]]? [[Mango juice]] is the best!",
     },
     {
       name: "auto-linking only the first occurrence when autoLinkFirstOccuranceOnly is true",
       settings: { autoLinkFirstOccuranceOnly: true },
-      input: "Bob sent an email. Later, bob replied to another email.",
+      input: {
+        uuid: "test-uuid",
+        content: "Bob sent an email. Later, bob replied to another email.",
+      },
       expected: "[[Bob]] sent an email. Later, bob replied to another email.",
+    },
+    {
+      name: "auto-linking pages with punctuation",
+      input: {
+        uuid: "test-uuid",
+        content:
+          "(Alice) and Alice's friend Bob.with.dots and Mango[with brackets] and Mango juice!",
+      },
+      expected:
+        "([[Alice]]) and [[Alice]]'s friend [[Bob]].with.dots and Mango[with brackets] and [[Mango juice]]!",
     },
     {
       name: "not auto-linking an excluded pages",
       settings: { pagesToExclude: ["Mango"] },
-      input: "I love Mango and I also like Alice.",
+      input: {
+        uuid: "test-uuid",
+        content: "I love Mango and I also like Alice.",
+      },
       expected: "I love Mango and I also like [[Alice]].",
     },
     {
       name: "not auto-linking multiple excluded pages",
       settings: { pagesToExclude: ["Mango", "Alice"] },
-      input: "I love Mango and I also like Alice, but Bob is my best friend.",
+      input: {
+        uuid: "test-uuid",
+        content:
+          "I love Mango and I also like Alice, but Bob is my best friend.",
+      },
       expected:
         "I love Mango and I also like Alice, but [[Bob]] is my best friend.",
     },
     {
-      name: "auto-linking pages with punctuation",
-      input:
-        "(Alice) and Alice's friend Bob.with.dots and Mango[with brackets] and Mango juice!",
-      expected:
-        "([[Alice]]) and [[Alice]]'s friend [[Bob]].with.dots and Mango[with brackets] and [[Mango juice]]!",
+      name: "not auto-linking a block with no pages",
+      input: {
+        uuid: "test-uuid",
+        content: "This text has no page names to link.",
+      },
     },
     {
-      name: "with no matches",
-      input: "This text has no page names to link.",
-    },
-    {
-      name: "with all pages excluded",
+      name: "not auto-linking a block with all pages excluded",
       settings: { pagesToExclude: ["Alice", "Bob", "Mango", "Mango juice"] },
-      input: "Alice, Bob, and Mango juice are all in the excluded list.",
+      input: {
+        uuid: "test-uuid",
+        content: "Alice, Bob, and Mango juice are all in the excluded list.",
+      },
+    },
+    {
+      name: "not linking a block with no content",
+      input: {
+        uuid: "test-uuid",
+      },
     },
   ];
 
@@ -112,24 +147,17 @@ describe("autoLink function", () => {
         mockLogseq.settings = { ...DEFAULT_SETTINGS, ...settings };
       }
 
-      // Create test block
-      const block = {
-        uuid: "test-uuid",
-        content: input,
-      };
-
       // Run the function
-      const result = await functions.autoLink(block, allPagesSorted);
+      const result = await functions.autoLink(input, allPagesSorted);
 
       // Check result
       if (expected) {
         expect(result.content).toBe(expected);
         expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
-          block.uuid,
+          input.uuid,
           expected,
         );
       } else {
-        expect(result.content).toBe(input);
         expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
       }
     });
@@ -138,6 +166,7 @@ describe("autoLink function", () => {
 
 const pagesToTagsMap = {
   Alice: ["friend"],
+  John: undefined,
   Bob: ["friend", "colleague"],
   Mango: ["fruit"],
   "Mango juice": ["drink", "fruit juice"],
@@ -153,55 +182,96 @@ describe("autoTag function", () => {
   // Test cases as an array of objects for parameterized testing
   const testCases = [
     {
-      name: "tagging a block with single-word tags",
-      input: "[[Alice]] likes [[Mango]].",
+      name: "auto-tagging a block with single-word tags",
+      input: {
+        uuid: "test-uuid",
+        content: "[[Alice]] likes [[Mango]].",
+      },
       expected: "[[Alice]] likes [[Mango]]. #friend #fruit",
     },
     {
-      name: "tagging a block with multi-word tags",
-      input: "[[Bob]] likes [[Mango juice]].",
+      name: "auto-tagging a block with multi-word tags",
+      settings: { enableConsoleLogging: false },
+      input: {
+        uuid: "test-uuid",
+        content: "[[Bob]] likes [[Mango juice]].",
+      },
       expected:
         "[[Bob]] likes [[Mango juice]]. #friend #colleague #drink #[[fruit juice]]",
     },
     {
-      name: "tagging with [[tag]] when tagAsLink is enabled",
+      name: "auto-tagging with [[tag]] when tagAsLink is enabled",
       settings: { tagAsLink: true },
-      input: "[[Alice]] likes [[Mango]].",
+      input: {
+        uuid: "test-uuid",
+        content: "[[Alice]] likes [[Mango]].",
+      },
       expected: "[[Alice]] likes [[Mango]]. [[friend]] [[fruit]]",
     },
     {
       name: "inserting tags when tagInTheBeginning is enabled",
       settings: { tagInTheBeginning: true },
-      input: "[[Alice]] likes [[Mango]].",
+      input: {
+        uuid: "test-uuid",
+        content: "[[Alice]] likes [[Mango]].",
+      },
       expected: "#friend #fruit [[Alice]] likes [[Mango]].",
     },
     {
-      name: "tagging a todo block when tagInTheBeginning is enabled",
+      name: "auto-tagging a todo block when tagInTheBeginning is enabled",
       settings: { tagInTheBeginning: true },
-      input: "DOING Tell [[Alice]] to bring some [[Mango]].",
+      input: {
+        uuid: "test-uuid",
+        content: "DOING Tell [[Alice]] to bring some [[Mango]].",
+      },
       expected: "DOING #friend #fruit Tell [[Alice]] to bring some [[Mango]].",
     },
     {
-      name: "tagging a todo block with prio when tagInTheBeginning is enabled",
+      name: "auto-tagging a todo block with prio when tagInTheBeginning is enabled",
       settings: { tagInTheBeginning: true },
-      input: "TODO [#B] Tell [[Alice]] to bring some [[Mango]].",
+      input: {
+        uuid: "test-uuid",
+        content: "TODO [#B] Tell [[Alice]] to bring some [[Mango]].",
+      },
       expected:
         "TODO [#B] #friend #fruit Tell [[Alice]] to bring some [[Mango]].",
     },
     {
-      name: "tagging a block with prio when tagInTheBeginning is enabled",
+      name: "auto-tagging a block with prio when tagInTheBeginning is enabled",
       settings: { tagInTheBeginning: true },
-      input: "[#A] Tell [[Alice]] to bring some [[Mango]].",
+      input: {
+        uuid: "test-uuid",
+        content: "[#A] Tell [[Alice]] to bring some [[Mango]].",
+      },
       expected: "[#A] #friend #fruit Tell [[Alice]] to bring some [[Mango]].",
     },
     {
-      name: "not tagging a block with no links",
-      input: "Alice likes mango juice.",
+      name: "not auto-tagging a block with no links",
+      input: {
+        uuid: "test-uuid",
+        content: "Alice likes mango juice.",
+      },
     },
     {
-      name: "not tagging a block with links to non-existing page",
-      input: "[[John]] likes [[Mango]].",
+      name: "not auto-tagging a block with links to non-existing page",
+      input: {
+        uuid: "test-uuid",
+        content: "[[John]] likes [[Mango]].",
+      },
       expected: "[[John]] likes [[Mango]]. #fruit",
+    },
+    {
+      name: "not auto-tagging a broken block",
+      input: {
+        uuid: "test-uuid",
+      },
+    },
+    {
+      name: "not auto-tagging a block with a link to a page with no tags",
+      input: {
+        uuid: "test-uuid",
+        content: "[[John]] is tall.",
+      },
     },
   ];
 
@@ -213,18 +283,12 @@ describe("autoTag function", () => {
         mockLogseq.settings = { ...DEFAULT_SETTINGS, ...settings };
       }
 
-      // Create test block
-      const block = {
-        uuid: "test-uuid",
-        content: input,
-      };
-
       // Run the function
-      await functions.autoTag(block, pagesToTagsMap);
+      await functions.autoTag(input, pagesToTagsMap);
 
       if (expected) {
         expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
-          block.uuid,
+          input.uuid,
           expected,
         );
       } else {
@@ -456,7 +520,7 @@ describe("autoLinkAutoTagCallback function", () => {
   // Setup test cases
   const testCases = [
     {
-      name: "tagging a block with single-word tags",
+      name: "not auto-linking a block when enableAutoLink is false",
       input: {
         block: {
           uuid: "test-uuid",
@@ -468,7 +532,7 @@ describe("autoLinkAutoTagCallback function", () => {
       },
     },
     {
-      name: "tagging a block with single-word tags",
+      name: "not auto-tagging a block when enableAutoTag is false",
       input: {
         block: {
           uuid: "test-uuid",
@@ -480,7 +544,7 @@ describe("autoLinkAutoTagCallback function", () => {
       },
     },
     {
-      name: "tagging a block with single-word tags",
+      name: "not processing a block when enableAutoLink and enableAutoTag are false",
       input: {
         block: {
           uuid: "test-uuid",
@@ -493,7 +557,10 @@ describe("autoLinkAutoTagCallback function", () => {
       },
     },
     {
-      name: "tagging a block with single-word tags",
+      name: "processing a block with pages",
+      settings: {
+        enableConsoleLogging: false,
+      },
       input: {
         block: {
           uuid: "test-uuid",
@@ -502,7 +569,7 @@ describe("autoLinkAutoTagCallback function", () => {
       },
     },
     {
-      name: "not processing a block which matches blocksToExclude setting",
+      name: "not processing a block excluded by blocksToExclude setting",
       input: {
         block: {
           uuid: "test-uuid",
