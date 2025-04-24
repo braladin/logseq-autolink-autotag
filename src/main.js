@@ -185,8 +185,9 @@ if (typeof logseq !== "undefined") {
 /* TODO
 
 ci
-- [x] add release-please github action
+- [x] add release-please workflow
 - [x] update release-please workflow with steps to create and attach a release zip
+- [x] add ci workflow which runs tests
 
 feat
 - [x] auto-tag blocks based on linked pages by pressing enter
