@@ -111,7 +111,10 @@ export async function autoLink(block, allPagesSorted) {
     // Create a regex pattern from the page name, escaping special characters
     const pageName = page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
-    const regex = new RegExp(`(?<=^|\\s)${pageName}(?=\\s|$|[,.;:!?)])`, "gi");
+    const regex = new RegExp(
+      `(?<=^|\\s|['("])${pageName}(?=\\s|$|[,.;:!?)'"])`,
+      "gi",
+    );
     // Only replace first occurrence if setting is enabled
     if (logseq.settings?.autoLinkFirstOccuranceOnly) {
       // Replace only the first occurrence
