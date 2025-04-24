@@ -1,4 +1,4 @@
-import { autoLink, autoTag } from "../src/functions.js";
+import { autoLink, autoTag, updatePagesToTagsMap } from "../src/functions.js";
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 // Mock logseq object for testing
@@ -29,7 +29,7 @@ global.logseq = mockLogseq;
 const allPagesSorted = ["Mango juice", "Alice", "Mango", "Bob"];
 
 describe("autoLink function", () => {
-  // Reset mocks and settings before each test
+  // Reset mocks and settings before each test. TODO: remove this at next refactoring
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -38,7 +38,7 @@ describe("autoLink function", () => {
   const testCases = [
     {
       name: "basic functionality",
-      firstOccuranceOnly: false,
+      firstOccuranceOnly: false, //TODO: group into a settings object. Keep only settings with non-default values
       input: "Alice and bob like to drink mango juice.",
       expected: "[[Alice]] and [[Bob]] like to drink [[Mango juice]].",
     },
@@ -151,7 +151,7 @@ const pagesToTagsMap = {
 };
 
 describe("autoTag function", () => {
-  // Reset mocks and settings before each test
+  // Reset mocks and settings before each test. TODO: remove this at next refactoring
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -160,7 +160,7 @@ describe("autoTag function", () => {
   const testCases = [
     {
       name: "tagging a block with single-word tags",
-      tagAsLink: false,
+      tagAsLink: false, //TODO: group into a settings object. Keep only settings with non-default values
       tagInTheBeginning: false,
       input: "[[Alice]] likes [[Mango]].",
       expected: "[[Alice]] likes [[Mango]]. #friend #fruit",
@@ -260,4 +260,87 @@ describe("autoTag function", () => {
       });
     },
   );
+});
+
+describe("updatePagesToTagsMap function", () => {
+  // Reset mocks and settings before each test. TODO: remove this at next refactoring
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Test cases as an array of objects for parameterized testing
+  const testCases = [
+    {
+      name: "updating a page containing a single tag",
+      settings: {},
+      input: {
+        block: { content: "tags:: person" },
+        page: { originalName: "Alice" },
+        pagesToTagsMap: pagesToTagsMap,
+      },
+      expected: ["person"],
+    },
+    {
+      name: "updating a page containing multiple tags",
+      settings: {},
+      input: {
+        block: {
+          content: "tags:: #person, [[friend]], [[co worker]], #[[big family]]",
+        },
+        page: { originalName: "Alice" },
+        pagesToTagsMap: pagesToTagsMap,
+      },
+      expected: ["person", "friend", "co worker", "big family"],
+    },
+    {
+      name: "updating a page containing tags then aliases",
+      settings: {},
+      input: {
+        block: {
+          content: "tags:: #person\naliases:: Al",
+        },
+        page: { originalName: "Alice" },
+        pagesToTagsMap: pagesToTagsMap,
+      },
+      expected: ["person"],
+    },
+    {
+      name: "updating a page containing aliases then tags",
+      settings: {},
+      input: {
+        block: {
+          content: "aliases:: Al\ntags:: #person",
+        },
+        page: { originalName: "Alice" },
+        pagesToTagsMap: pagesToTagsMap,
+      },
+      expected: ["person"],
+    },
+    {
+      name: "not updating a page containing aliases and no tags",
+      settings: {},
+      input: {
+        block: {
+          content: "aliases:: Al",
+        },
+        page: { originalName: "Alice" },
+        pagesToTagsMap: pagesToTagsMap,
+      },
+      expected: [],
+    },
+  ];
+
+  // Run parameterized tests
+  testCases.forEach(({ name, settings, input, expected }) => {
+    it(`should handle ${name}`, async () => {
+      // Create a fresh copy of pagesToTagsMap for this test
+      const testMap = JSON.parse(JSON.stringify(pagesToTagsMap));
+
+      // Run the function
+      updatePagesToTagsMap(input.block, input.page, testMap);
+
+      // Verify the result
+      expect(testMap[input.page.originalName]).toEqual(expected);
+    });
+  });
 });
