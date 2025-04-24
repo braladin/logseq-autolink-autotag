@@ -154,14 +154,14 @@ export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   allPagesSorted.splice(insertIndex, 0, newPageEntity.originalName);
 }
 
-export function updatePagesToTagsMap(tagsBlock, taggedPage, pagesToTagsMap) {
-  const tagsContent = tagsBlock.content.replace(/^tags::/, "").trim();
-  const tags = tagsContent
+export function updatePagesToTagsMap(block, page, pagesToTagsMap) {
+  const tagsRegex = /tags::\s*(.*)/;
+  const tagsString = block.content.match(tagsRegex)?.[1] || "";
+  const tags = tagsString
     .split(",")
-    .map((tag) => tag.trim().replace(/^#/, ""))
+    .map((tag) => tag.trim().replace(/[#\[\]]/g, ""))
     .filter((tag) => tag.length > 0);
-
-  pagesToTagsMap[taggedPage.originalName] = tags;
+  pagesToTagsMap[page.originalName] = tags;
 }
 
 export async function getPagesToTagsMap() {
