@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.7](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.6...v1.1.7) (2025-04-24)
+
+
+### Bug Fixes
+
+* auto-link pages surrounded by () "" or '' ([186731c](https://github.com/braladin/logseq-autolink-autotag/commit/186731cf8533bdd35ef5b7b43586af660cd399ef))
+* handle more cases when updating page tags ([c77589b](https://github.com/braladin/logseq-autolink-autotag/commit/c77589b87c8f33c39b7d0f610388932e38d56f6b))
+* separate tag string building and insertion to eliminate code redundancy ([acbd512](https://github.com/braladin/logseq-autolink-autotag/commit/acbd51275be9b822eca7da05fbbd5789bc5e7564))
+
 ## [1.1.6](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.5...v1.1.6) (2025-04-23)
 
 
