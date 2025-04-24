@@ -4,7 +4,6 @@ export default {
     "^(\.{1,2}/.*)\.js$": "$1",
   },
   testEnvironment: "node",
-  resetMocks: true,
   collectCoverage: true,
   coverageDirectory: "coverage",
   collectCoverageFrom: [
