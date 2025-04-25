@@ -223,6 +223,7 @@ fix
 - [x] auto-link pages surrounded by () "" or ''
 - [x] handle more cases when updating page tags
 - [x] separate tag string building and insertion to eliminate code redundancy
+- [x] extend auto-link regex to match a page's plural form e.g. [[page]]s
 - [ ] Detect when a tag's page is renamed and update plugin data
 - [ ] Detect when user switches the graph and rebuild plugin data
 - [ ] Unregister keybinding when plugin is disabled

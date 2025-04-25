@@ -112,7 +112,7 @@ export async function autoLink(block, allPagesSorted) {
     const pageName = page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
     const regex = new RegExp(
-      `(?<=^|\\s|['("])${pageName}(?=\\s|$|[,.;:!?)'"])`,
+      `(?<=^|\\s|['("])${pageName}(?=\\s|$|[,.;:!?)'"s])`,
       "gi",
     );
     // Only replace first occurrence if setting is enabled
