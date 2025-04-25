@@ -224,6 +224,7 @@ fix
 - [x] handle more cases when updating page tags
 - [x] separate tag string building and insertion to eliminate code redundancy
 - [x] extend auto-link regex to match a page's plural form e.g. [[page]]s
+- [x] extend auto-link regex to skip auto-linking a page between square brackets e.g. [ page ]
 - [ ] Detect when a tag's page is renamed and update plugin data
 - [ ] Detect when user switches the graph and rebuild plugin data
 - [ ] Unregister keybinding when plugin is disabled
