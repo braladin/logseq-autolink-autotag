@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.8](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.7...v1.1.8) (2025-04-25)
+
+
+### Bug Fixes
+
+* extend auto-link regex to match page plural form e.g. [[page]]s ([89cf9c0](https://github.com/braladin/logseq-autolink-autotag/commit/89cf9c0e1be62e73064bd4f6ddf9ef06bc657245))
+* extend auto-link regex to skip auto-linking a page between square brackets e.g. [ page ] ([2b1e3f5](https://github.com/braladin/logseq-autolink-autotag/commit/2b1e3f50d4b3f75dedfef884fa5ac2939b8fe976))
+
 ## [1.1.7](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.6...v1.1.7) (2025-04-24)
 
 
