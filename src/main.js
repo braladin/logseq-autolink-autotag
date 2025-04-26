@@ -198,10 +198,8 @@ ci
 feat
 - [x] auto-tag blocks based on linked pages by pressing enter
 - [x] auto-tag by slash command
-- [ ] ~~auto-tag by keybinding~~
 - [x] auto-link pages by pressing enter
 - [x] auto-link by slash command
-- [ ] ~~auto-link by keybinding~~
 - [x] add auto-link first occurance only
 - [x] auto-tag with [[tag]] instead of #tag
 - [x] add autoTagOnEnter, autoLinkOnEnter, pagesToExclude, blocksToExclude, useHashtag, insertTags logic
@@ -216,6 +214,7 @@ feat
 - [x] add setting to set pages to skip
 - [ ] add setting to set property to auto-tag on i.e. other than tags::
 - [x] run plugin by keybinding
+- [x] make auto-linking plurals configurable
 
 fix
 - [x] add guards to process keyup events only when editing a block
@@ -231,7 +230,6 @@ fix
 - [x] separate tag string building and insertion to eliminate code redundancy
 - [x] extend auto-link regex to match a page's plural form e.g. pages -> [[page]]s
 - [x] extend auto-link regex to skip auto-linking a page between square brackets e.g. [ page ]
-- [x] make auto-linking plurals configurable
 - [ ] Detect when a tag's page is renamed and update plugin data
 - [ ] Detect when user switches the graph and rebuild plugin data
 - [ ] Unregister keybinding when plugin is disabled
