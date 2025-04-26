@@ -104,7 +104,7 @@ async function main() {
 const settings = [
   {
     key: "keybinding",
-    description: "Keybinding to run plugin on the last edited block",
+    description: "Keybinding to run plugin on current block",
     type: "string",
     default: "mod+shift+b",
     title: "Keybinding",
@@ -125,15 +125,21 @@ const settings = [
   },
   {
     key: "autoLinkFirstOccuranceOnly",
-    description:
-      "Auto-link only the first occurance of a page in the last edited block",
+    description: "Auto-link only the first occurance of a page",
     type: "boolean",
     default: false,
     title: "Auto-link first occurance only",
   },
   {
+    key: "autoLinkPlurals",
+    description: "Auto-link plurals of pages e.g. pages -> [[page]]s",
+    type: "boolean",
+    default: false,
+    title: "Auto-link plurals",
+  },
+  {
     key: "runUponPressingEnter",
-    description: "Run plugin upon pressing enter on the last edited block",
+    description: "Run plugin upon pressing enter",
     type: "boolean",
     default: true,
     title: "Run upon pressing enter",
@@ -223,8 +229,9 @@ fix
 - [x] auto-link pages surrounded by () "" or ''
 - [x] handle more cases when updating page tags
 - [x] separate tag string building and insertion to eliminate code redundancy
-- [x] extend auto-link regex to match a page's plural form e.g. [[page]]s
+- [x] extend auto-link regex to match a page's plural form e.g. pages -> [[page]]s
 - [x] extend auto-link regex to skip auto-linking a page between square brackets e.g. [ page ]
+- [x] make auto-linking plurals configurable
 - [ ] Detect when a tag's page is renamed and update plugin data
 - [ ] Detect when user switches the graph and rebuild plugin data
 - [ ] Unregister keybinding when plugin is disabled

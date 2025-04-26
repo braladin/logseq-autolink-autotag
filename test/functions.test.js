@@ -60,7 +60,8 @@ describe("autoLink function", () => {
       expected: "[[Alice]] and [[Bob]] like to drink [[Mango juice]].",
     },
     {
-      name: "auto-linking page plurals",
+      name: "auto-linking plurals",
+      settings: { autoLinkPlurals: true },
       input: {
         uuid: "test-uuid",
         content: "Alice and bob like to eat lots of mangos.",

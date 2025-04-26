@@ -10,4 +10,8 @@ A Logseq plugin to auto-link pages in a block and auto-tag the block with the ta
 - Option: Auto-link all occurrences / only the first occurrence of a page
 - Option: insert / append tags
 - Option: Auto-tag with `[[tag]]` / `#tag`
+- Option: Configure page names to exclude from auto-linking
+- Option: Configure block patterns to exclude from processing e.g. `.*::`.
+- Option: Auto-link plural form of pages e.g. [[Page]]s
 - Detect page creation and deletion
+- Detect page tag change
