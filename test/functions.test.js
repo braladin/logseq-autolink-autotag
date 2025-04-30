@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   autoLinkFirstOccuranceOnly: false,
   pagesToExclude: "card",
   blocksToExclude: "(\\w+::)|{{.*}}",
+  textToExclude: "{{.*?}}|\\[.*?\\]|(``)?`[^`]+`(``)?",
   tagAsLink: false,
   tagInTheBeginning: false,
 };
@@ -137,6 +138,29 @@ describe("autoLink function", () => {
       input: {
         uuid: "test-uuid",
         content: "[[ Bob ]] should not be linked.",
+      },
+    },
+    {
+      name: "not auto-linking a page inside inline code",
+      input: {
+        uuid: "test-uuid",
+        content: "This Bob should be linked, `The Bob not`, this Bob should.",
+      },
+      expected:
+        "This [[Bob]] should be linked, `The Bob not`, this [[Bob]] should.",
+    },
+    {
+      name: "not auto-linking a page inside code section",
+      input: {
+        uuid: "test-uuid",
+        content: "```\nThis bob should not be linked\n```",
+      },
+    },
+    {
+      name: "not auto-linking a page inside template definition",
+      input: {
+        uuid: "test-uuid",
+        content: "{{This bob should not be linked}}",
       },
     },
     {

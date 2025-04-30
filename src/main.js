@@ -170,8 +170,16 @@ const settings = [
     description:
       "Regex pattern of blocks to exclude from auto-linking and auto-tagging",
     type: "string",
-    default: "(\\w+::)|{{.*}}",
+    default: "(\\w+::)",
     title: "Blocks to exclude from auto-linking and auto-tagging",
+  },
+  {
+    key: "textToExclude",
+    description:
+      "Regex pattern of text within blocks to exclude from auto-linking",
+    type: "string",
+    default: "{{.*?}}|\\[.*?\\]|(``)?`[^`]+`(``)?",
+    title: "Text to exclude from auto-linking and auto-tagging",
   },
   {
     key: "enableConsoleLogging",
@@ -215,6 +223,7 @@ feat
 - [ ] add setting to set property to auto-tag on i.e. other than tags::
 - [x] run plugin by keybinding
 - [x] make auto-linking plurals configurable
+- [x] add textToExclude setting
 
 fix
 - [x] add guards to process keyup events only when editing a block
@@ -230,6 +239,7 @@ fix
 - [x] separate tag string building and insertion to eliminate code redundancy
 - [x] extend auto-link regex to match a page's plural form e.g. pages -> [[page]]s
 - [x] extend auto-link regex to skip auto-linking a page between square brackets e.g. [ page ]
+- [x] prevent auto-linking pages inside inline code
 - [ ] Detect when a tag's page is renamed and update plugin data
 - [ ] Detect when user switches the graph and rebuild plugin data
 - [ ] Unregister keybinding when plugin is disabled

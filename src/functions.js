@@ -105,6 +105,10 @@ export async function autoLink(block, allPagesSorted) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
+  // Add text exclusion markers
+  const textToExclude = new RegExp(logseq.settings?.textToExclude);
+  content = content.replace(textToExclude, (match) => `︿${match}﹀`);
+
   for (const page of allPagesSorted) {
     // Skip page if it found in pagesToExclude setting
     if (logseq.settings?.pagesToExclude.includes(page)) continue;
@@ -113,7 +117,7 @@ export async function autoLink(block, allPagesSorted) {
     // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
     const pluralS = logseq.settings?.autoLinkPlurals ? "s" : "";
     const regex = new RegExp(
-      `(?<!\\[[^\\[\\]]* )(?<=^|\\s|['("])${pageName}(?=\\s|$|[,.;:!?)'"${pluralS}])`,
+      `(?<=^|\\s|['("])${pageName}(?=\\s|$|[,.;:!?)'"${pluralS}])(?![^︿]*﹀)`,
       "gi",
     );
     // Only replace first occurrence if setting is enabled
@@ -128,6 +132,9 @@ export async function autoLink(block, allPagesSorted) {
       content = content.replace(regex, `[[${page}]]`);
     }
   }
+
+  // Remove text exclusion markers
+  content = content.replace(/[︿﹀]/g, "");
 
   if (content !== block.content) {
     if (logseq.settings.enableConsoleLogging === true)
