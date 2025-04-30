@@ -1,6 +1,6 @@
 {
   "name": "logseq-autolink-autotag",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "description": "A Logseq plugin to auto-link pages and auto-tag blocks",
   "author": "braladin",
   "type": "module",

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.8...v1.2.0) (2025-04-30)
+
+
+### Features
+
+* make auto-linking plurals configurable ([1b7b374](https://github.com/braladin/logseq-autolink-autotag/commit/1b7b374b0b3fca7b963545ddb77dd20a2575eef5))
+
+
+### Bug Fixes
+
+* prevent auto-linking pages inside inline code ([6d5f418](https://github.com/braladin/logseq-autolink-autotag/commit/6d5f41819c85e069445a999b8b8a847444cc7b80)), closes [#15](https://github.com/braladin/logseq-autolink-autotag/issues/15)
+
 ## [1.1.8](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.7...v1.1.8) (2025-04-25)
 
 
