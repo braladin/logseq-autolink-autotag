@@ -8,8 +8,8 @@ const DEFAULT_SETTINGS = {
   enableAutoTag: true,
   autoLinkFirstOccuranceOnly: false,
   pagesToExclude: "card",
-  blocksToExclude: "(\\w+::)|{{.*}}",
-  textToExclude: "{{.*?}}|\\[.*?\\]|(``)?`[^`]+`(``)?",
+  blocksToExclude: "\\w+::|^#\\+|^```",
+  textToExclude: "{{.*?}}|\\[.*?\\]|`[^`]+`",
   tagAsLink: false,
   tagInTheBeginning: false,
 };
@@ -148,13 +148,6 @@ describe("autoLink function", () => {
       },
       expected:
         "This [[Bob]] should be linked, `The Bob not`, this [[Bob]] should.",
-    },
-    {
-      name: "not auto-linking a page inside code section",
-      input: {
-        uuid: "test-uuid",
-        content: "```\nThis bob should not be linked\n```",
-      },
     },
     {
       name: "not auto-linking a page inside template definition",
@@ -570,6 +563,7 @@ describe("autoLinkAutoTagCallback function", () => {
       settings: {
         enableAutoLink: false,
       },
+      expected: true,
     },
     {
       name: "not auto-tagging a block when enableAutoTag is false",
@@ -582,6 +576,7 @@ describe("autoLinkAutoTagCallback function", () => {
       settings: {
         enableAutoTag: false,
       },
+      expected: true,
     },
     {
       name: "not processing a block when enableAutoLink and enableAutoTag are false",
@@ -607,6 +602,7 @@ describe("autoLinkAutoTagCallback function", () => {
           content: "Alice likes Mango.",
         },
       },
+      expected: true,
     },
     {
       name: "not processing a block excluded by blocksToExclude setting",
@@ -615,6 +611,20 @@ describe("autoLinkAutoTagCallback function", () => {
           uuid: "test-uuid",
           content: "tags:: person",
         },
+      },
+    },
+    {
+      name: "not processing a quote block",
+      input: {
+        uuid: "test-uuid",
+        content: "#+BEGIN_QUOTE\nThis bob should not be linked\n#+END_QUOTE",
+      },
+    },
+    {
+      name: "not processing a code block",
+      input: {
+        uuid: "test-uuid",
+        content: "```\nThis bob should not be linked\n```",
       },
     },
   ];
@@ -638,7 +648,7 @@ describe("autoLinkAutoTagCallback function", () => {
       );
 
       // Verify the result
-      if (input.block.content.startsWith("tags::")) {
+      if (!expected) {
         expect(logseq.Editor.updateBlock).not.toHaveBeenCalled();
         return;
       }
