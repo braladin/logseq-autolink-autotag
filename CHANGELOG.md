@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.0...v1.2.1) (2025-05-03)
+
+
+### Bug Fixes
+
+* detect changes to page tags and aliases and update plugin data accordingly ([d39ba4a](https://github.com/braladin/logseq-autolink-autotag/commit/d39ba4a90c7711626bfe96350191189a5f95ab50)), closes [#16](https://github.com/braladin/logseq-autolink-autotag/issues/16)
+* exclude quote, code, query,... blocks ([2a68d1c](https://github.com/braladin/logseq-autolink-autotag/commit/2a68d1c508d92a7a83b010a907034716b17a1d24))
+
 ## [1.2.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.1.8...v1.2.0) (2025-04-30)
 
 
