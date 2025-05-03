@@ -150,6 +150,14 @@ export async function autoLink(block, allPagesSorted) {
 export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting updateAllPagesSorted");
+  // Check if the page already exists in the sorted list and return early if it does
+  if (allPagesSorted.includes(newPageEntity.originalName)) {
+    if (logseq.settings.enableConsoleLogging === true)
+      console.debug(
+        `logseq-autolink-autotag: ${newPageEntity.originalName} already exists in AllPagesSorted`,
+      );
+    return;
+  }
   // Find the correct position to insert the new page based on name length
   const newPageLength = newPageEntity.originalName?.length || 0;
   if (newPageLength === 0) return;
@@ -163,9 +171,15 @@ export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
 
   // Insert the new page at the correct position
   allPagesSorted.splice(insertIndex, 0, newPageEntity.originalName);
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(
+      `logseq-autolink-autotag: Added ${newPageEntity.originalName} to AllPagesSorted`,
+    );
 }
 
 export function updatePagesToTagsMap(block, page, pagesToTagsMap) {
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug("logseq-autolink-autotag: Starting updatePagesToTagsMap");
   const tagsRegex = /tags::\s*(.*)/;
   const tagsString = block.content.match(tagsRegex)?.[1] || "";
   const tags = tagsString
@@ -173,6 +187,10 @@ export function updatePagesToTagsMap(block, page, pagesToTagsMap) {
     .map((tag) => tag.trim().replace(/[#\[\]]/g, ""))
     .filter((tag) => tag.length > 0);
   pagesToTagsMap[page.originalName] = tags;
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(
+      `logseq-autolink-autotag: Updated page ${page.originalName} with tags ${tags}`,
+    );
 }
 
 export async function getPagesToTagsMap() {

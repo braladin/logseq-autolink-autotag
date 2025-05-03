@@ -34,13 +34,13 @@ async function main() {
     // Skip keyup events that do not occur when editing blocks
     // or when modifier keys are pressed
     if (
-      event.target?.tagName?.toLowerCase() !== "textarea" ||
-      event.target?.getAttribute("aria-label") !== "editing block" ||
+      event.target?.type !== "textarea" ||
+      !event.target?.id.startsWith("edit-block") ||
       event.altKey === true ||
       event.ctrlKey === true ||
       event.metaKey === true ||
       event.shiftKey === true ||
-      ["Shift", "Control", "Alt", "Meta"].includes(event.key)
+      ["Shift", "Control", "Alt", "AltGraph", "Meta"].includes(event.key)
     )
       return;
     if (
@@ -64,14 +64,40 @@ async function main() {
 
     // Detect page creation and update allPagesSorted
     if (txMeta?.outlinerOp === "create-page") {
+      if (logseq.settings.enableConsoleLogging === true)
+        console.debug("logseq-autolink-autotag: Detected page creation");
       updateAllPagesSorted(blocks[0], allPagesSorted);
       return;
     }
 
-    // Detect tag change and update pagesToTagsMap
-    if (txMeta?.outlinerOp === "save-block") {
-      if (blocks[0].content && blocks[0].content.startsWith("tags::"))
+    // Detect change in alias or tags
+    if (txMeta?.outlinerOp === "save-block" && blocks.length > 2) {
+      // Detect change in page tags
+      if (blocks[0].content?.includes("tags::")) {
+        if (logseq.settings.enableConsoleLogging === true)
+          console.debug(
+            "logseq-autolink-autotag: Detected change in page tags",
+          );
         updatePagesToTagsMap(blocks[0], blocks[1], pagesToTagsMap);
+      }
+      // Detect change in page aliases
+      if (
+        blocks[0].content?.includes("alias::") ||
+        blocks[0].content?.includes("aliases::")
+      ) {
+        if (logseq.settings.enableConsoleLogging === true)
+          console.debug(
+            "logseq-autolink-autotag: Detected change in page aliases",
+          );
+        for (const alias of blocks[1].properties?.alias) {
+          updateAllPagesSorted({ originalName: alias }, allPagesSorted);
+          updatePagesToTagsMap(
+            blocks[0],
+            { originalName: alias },
+            pagesToTagsMap,
+          );
+        }
+      }
       return;
     }
 
@@ -240,6 +266,7 @@ fix
 - [x] extend auto-link regex to match a page's plural form e.g. pages -> [[page]]s
 - [x] extend auto-link regex to skip auto-linking a page between square brackets e.g. [ page ]
 - [x] prevent auto-linking pages inside inline code
+- [x] detect changes to page tags and aliases and update plugin data accordingly
 - [ ] Detect when a tag's page is renamed and update plugin data
 - [ ] Detect when user switches the graph and rebuild plugin data
 - [ ] Unregister keybinding when plugin is disabled
