@@ -71,7 +71,7 @@ async function main() {
     }
 
     // Detect change in alias or tags
-    if (txMeta?.outlinerOp === "save-block" && blocks.length > 2) {
+    if (txMeta?.outlinerOp === "save-block" && blocks.length > 1) {
       // Detect change in page tags
       if (blocks[0].content?.includes("tags::")) {
         if (logseq.settings.enableConsoleLogging === true)
