@@ -14,5 +14,5 @@ export default {
     "!src/lsplugin.user.js",
     "!src/main.js", // TODO: Remove this after finding a way to test main.js with Jest
   ],
-  coverageReporters: ["text", "lcov", "clover"],
+  coverageReporters: ["text", "json-summary"],
 };
