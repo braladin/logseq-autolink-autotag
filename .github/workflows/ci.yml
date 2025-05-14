@@ -29,5 +29,5 @@ jobs:
         uses: jaywcjlove/coverage-badges-cli@main
         with:
           source: coverage/coverage-summary.json
-          output: coverage/badges.svg
+          output: coverage-badge.svg
           jsonPath: totals.percent_covered

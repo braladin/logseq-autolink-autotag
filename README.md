@@ -1,5 +1,5 @@
 # Auto-link Auto-tag Plugin for Logseq
-![GitHub License](https://img.shields.io/github/license/braladin/logseq-autolink-autotag) ![Code coverage](./coverage/badges.svg) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/braladin/logseq-autolink-autotag/total)
+![GitHub License](https://img.shields.io/github/license/braladin/logseq-autolink-autotag) ![Code coverage](coverage-badge.svg) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/braladin/logseq-autolink-autotag/total)
 
 A Logseq plugin to auto-link pages in a block and auto-tag the block with the tags of the linked pages.
 

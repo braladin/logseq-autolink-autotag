@@ -24,6 +24,6 @@
     "cz": "czg",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "make-badges": "coverage-badges"
+    "make-badges": "coverage-badges --output coverage-badge.svg"
   }
 }
