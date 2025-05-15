@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.2...v1.2.3) (2025-05-15)
+
+
+### Bug Fixes
+
+* textToExclude handling ([96a7df4](https://github.com/braladin/logseq-autolink-autotag/commit/96a7df47ed4ac2a308049a359a2d09542ea328e3))
+
 ## [1.2.2](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.1...v1.2.2) (2025-05-04)
 
 
