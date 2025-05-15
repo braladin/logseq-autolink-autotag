@@ -106,7 +106,7 @@ export async function autoLink(block, allPagesSorted) {
     console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
   // Add text exclusion markers
-  const textToExclude = new RegExp(logseq.settings?.textToExclude);
+  const textToExclude = new RegExp(logseq.settings?.textToExclude, "g");
   content = content.replace(textToExclude, (match) => `︿${match}﹀`);
 
   for (const page of allPagesSorted) {

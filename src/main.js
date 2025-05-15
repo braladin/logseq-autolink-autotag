@@ -204,7 +204,7 @@ const settings = [
     description:
       "Regex pattern of text within blocks to exclude from auto-linking",
     type: "string",
-    default: "{{.*?}}|\\[.*?\\]|`[^`]+`",
+    default: "{{.*?}}|\\[[^\\[]*?\\]|`[^`]+`",
     title: "Text to exclude from auto-linking and auto-tagging",
   },
   {

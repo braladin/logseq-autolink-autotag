@@ -137,7 +137,7 @@ describe("autoLink function", () => {
       name: "not auto-linking a page inside double square brackets",
       input: {
         uuid: "test-uuid",
-        content: "[[ Bob ]] should not be linked.",
+        content: "[[ This Bob ]] and [[ this Bob ]] should not be linked",
       },
     },
     {
