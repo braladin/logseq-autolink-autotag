@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.3...v1.2.4) (2025-05-23)
+
+
+### Bug Fixes
+
+* fix regex pattern for auto-linking plurals ([1ebbe08](https://github.com/braladin/logseq-autolink-autotag/commit/1ebbe08f0335efdaf77f57216adb185d93a5b692)), closes [#20](https://github.com/braladin/logseq-autolink-autotag/issues/20)
+
 ## [1.2.3](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.2...v1.2.3) (2025-05-15)
 
 
