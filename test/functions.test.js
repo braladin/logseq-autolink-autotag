@@ -35,12 +35,13 @@ const mockLogseq = {
 global.logseq = mockLogseq;
 
 const allPagesSorted = [
+  "Person/Crystal Clear",
   "Mango juice",
+  "Crystal",
   "Alice",
   "Mango",
   "Bob",
-  "Person/Crystal Clear",
-  "Crystal",
+  "Box",
 ];
 
 describe("autoLink function", () => {
@@ -56,18 +57,20 @@ describe("autoLink function", () => {
       name: "auto-linking pages",
       input: {
         uuid: "test-uuid",
-        content: "Alice and bob like to drink mango juice.",
+        content: "Alice and bob like to drink mango juice and to eat mangos.",
       },
-      expected: "[[Alice]] and [[Bob]] like to drink [[Mango juice]].",
+      expected:
+        "[[Alice]] and [[Bob]] like to drink [[Mango juice]] and to eat mangos.",
     },
     {
       name: "auto-linking plurals",
       settings: { autoLinkPlurals: true },
       input: {
         uuid: "test-uuid",
-        content: "Alice and bob like to eat lots of mangos.",
+        content: "Alice and bob eat boxes of mangos, so they are mangoslovers",
       },
-      expected: "[[Alice]] and [[Bob]] like to eat lots of [[Mango]]s.",
+      expected:
+        "[[Alice]] and [[Bob]] eat [[Box]]es of [[Mango]]s, so they are mangoslovers",
     },
     {
       name: "auto-linking pages with namespaces",
@@ -101,10 +104,10 @@ describe("autoLink function", () => {
       input: {
         uuid: "test-uuid",
         content:
-          "(Alice) and Alice's friend Bob.with.dots and Mango[with brackets] and Mango juice!",
+          "(Alice) and Alice's friend Bob.with.dots and Mango(with brackets) and Mango juice!",
       },
       expected:
-        "([[Alice]]) and [[Alice]]'s friend [[Bob]].with.dots and Mango[with brackets] and [[Mango juice]]!",
+        "([[Alice]]) and [[Alice]]'s friend [[Bob]].with.dots and [[Mango]](with brackets) and [[Mango juice]]!",
     },
     {
       name: "not auto-linking an excluded pages",

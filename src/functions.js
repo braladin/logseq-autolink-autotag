@@ -105,21 +105,19 @@ export async function autoLink(block, allPagesSorted) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
-  // Add text exclusion markers
-  const textToExclude = new RegExp(logseq.settings?.textToExclude, "g");
-  content = content.replace(textToExclude, (match) => `︿${match}﹀`);
-
   for (const page of allPagesSorted) {
     // Skip page if it found in pagesToExclude setting
     if (logseq.settings?.pagesToExclude.includes(page)) continue;
+    // Add text exclusion markers
+    const textToExclude = new RegExp(logseq.settings?.textToExclude, "g");
+    content = content.replace(textToExclude, (match) => `︿${match}﹀`);
     // Create a regex pattern from the page name, escaping special characters
     const pageName = page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Look for the page name surrounded by word boundaries (spaces, punctuation, start/end of text)
-    const pluralS = logseq.settings?.autoLinkPlurals ? "s" : "";
-    const regex = new RegExp(
-      `(?<=^|\\s|['("])${pageName}(?=\\s|$|[,.;:!?)'"${pluralS}])(?![^︿]*﹀)`,
-      "gi",
-    );
+    // Look for the page name surrounded by word boundaries
+    const plural = logseq.settings?.autoLinkPlurals
+      ? "(?=\\b|s\\b|es\\b)"
+      : "\\b";
+    const regex = new RegExp(`\\b${pageName}${plural}(?![^︿]*﹀)`, "gi");
     // Only replace first occurrence if setting is enabled
     if (logseq.settings?.autoLinkFirstOccuranceOnly) {
       // Replace only the first occurrence
