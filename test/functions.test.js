@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS = {
   autoLinkFirstOccuranceOnly: false,
   pagesToExclude: "card",
   blocksToExclude: "\\w+::|^#\\+|^```",
-  textToExclude: "{{.*?}}|\\[.*?\\]|`[^`]+`",
+  textToExclude: "{{.*?}}|\\[.*?\\]|`[^`]+`|\\w+:\\/\\/\\S+",
   tagAsLink: false,
   tagInTheBeginning: false,
 };
