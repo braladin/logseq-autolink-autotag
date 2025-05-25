@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.4...v1.2.5) (2025-05-25)
+
+
+### Bug Fixes
+
+* update textToExclude setting's default value to exclude urls from auto-linking ([16494c9](https://github.com/braladin/logseq-autolink-autotag/commit/16494c9020210f24a248fecbf3cd330f7ca39456))
+
 ## [1.2.4](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.3...v1.2.4) (2025-05-23)
 
 
