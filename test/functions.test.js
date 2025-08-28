@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS = {
   autoLinkFirstOccuranceOnly: false,
   pagesToExclude: "card",
   blocksToExclude: "\\w+::|^#\\+|^```",
-  textToExclude: "{{.*?}}|\\[.*?\\]|`[^`]+`|\\w+:\\/\\/\\S+",
+  textToExclude: "{{.*?}}|\\[[^\\[]*?\\]|`[^`]+`|\\w+:\\/\\/\\S+",
   tagAsLink: false,
   tagInTheBeginning: false,
 };
@@ -98,6 +98,14 @@ describe("autoLink function", () => {
         content: "Bob sent an email. Later, bob replied to another email.",
       },
       expected: "[[Bob]] sent an email. Later, bob replied to another email.",
+    },
+    {
+      name: "not auto-linking second occurence when first occurence already linked",
+      settings: { autoLinkFirstOccuranceOnly: true },
+      input: {
+        uuid: "test-uuid",
+        content: "[[Bob]] sent an email. Later, bob replied to another email.",
+      },
     },
     {
       name: "auto-linking pages with punctuation",

@@ -106,8 +106,10 @@ export async function autoLink(block, allPagesSorted) {
     console.debug(`logseq-autolink-autotag: block.content: ${content}`);
 
   for (const page of allPagesSorted) {
-    // Skip page if it found in pagesToExclude setting
+    // Skip page if it is found in pagesToExclude setting
     if (logseq.settings?.pagesToExclude.includes(page)) continue;
+    // Skip page if it is not found in content
+    if (!content.toLowerCase().includes(page.toLowerCase())) continue;
     // Add text exclusion markers
     const textToExclude = new RegExp(logseq.settings?.textToExclude, "g");
     content = content.replace(textToExclude, (match) => `︿${match}﹀`);
@@ -122,7 +124,7 @@ export async function autoLink(block, allPagesSorted) {
     if (logseq.settings?.autoLinkFirstOccuranceOnly) {
       // Replace only the first occurrence
       const match = content.match(regex);
-      if (match) {
+      if (match && !content.includes(`[${page}]`)) {
         content = content.replace(match[0], `[[${page}]]`);
       }
     } else {
