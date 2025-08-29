@@ -198,9 +198,23 @@ export async function getPagesToTagsMap() {
   const pagesToTagsMap = {};
 
   // Process pages
-  for (const page of pageEntities) {
+  pageLoop: for (const page of pageEntities) {
     // Skip journal pages
     if (page["journal?"] === true) continue;
+
+    if (logseq.settings.doNotAutolinkTags === true) {
+      // Skip pages used as tags in the graph
+      const references = await logseq.Editor.getPageLinkedReferences(page.uuid);
+      if (references) {
+        for (const reference of references) {
+          for (const block of reference[1]) {
+            if (block.content?.includes(`#${page.originalName}`)) {
+              continue pageLoop;
+            }
+          }
+        }
+      }
+    }
 
     // Store page names and tags
     pagesToTagsMap[page.originalName] = page.properties?.tags

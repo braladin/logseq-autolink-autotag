@@ -15,6 +15,7 @@ async function main() {
     const result = await getPagesToTagsMap();
     allPagesSorted = result.allPagesSorted;
     pagesToTagsMap = result.pagesToTagsMap;
+    logseq.UI.showMsg("Plugin Auto-link Auto-tag ready");
   });
 
   logseq.Editor.registerSlashCommand("Auto-link Auto-tag", async () => {
@@ -162,6 +163,13 @@ const settings = [
     type: "boolean",
     default: false,
     title: "Auto-link plurals",
+  },
+  {
+    key: "doNotAutolinkTags",
+    description: "Do not auto-link pages referenced as tags in the graph",
+    type: "boolean",
+    default: false,
+    title: "Do not auto-link tags",
   },
   {
     key: "runUponPressingEnter",
