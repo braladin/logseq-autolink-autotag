@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.4...v1.3.0) (2025-08-30)
+
+
+### Features
+
+* add a setting to prevent auto-linking pages inside themselves ([79b2c19](https://github.com/braladin/logseq-autolink-autotag/commit/79b2c1979385423bb5f4d881e6c53242cc3dd0b8)), closes [#24](https://github.com/braladin/logseq-autolink-autotag/issues/24)
+* add a setting to prevent auto-linking pages that are referenced as tags in the graph ([c16baf8](https://github.com/braladin/logseq-autolink-autotag/commit/c16baf8f196954a0eac28e5d7e4dfe5c9215bcfa)), closes [#25](https://github.com/braladin/logseq-autolink-autotag/issues/25)
+
+
+### Bug Fixes
+
+* fix auto-linking already linked pages when "auto-link first occurence only" setting enabled ([8cc3855](https://github.com/braladin/logseq-autolink-autotag/commit/8cc3855a8a7aa56dc314d06729ede73e937eff60)), closes [#23](https://github.com/braladin/logseq-autolink-autotag/issues/23)
+* update textToExclude setting's default value to exclude urls from auto-linking ([16494c9](https://github.com/braladin/logseq-autolink-autotag/commit/16494c9020210f24a248fecbf3cd330f7ca39456))
+
 ## [1.2.4](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.3...v1.2.4) (2025-05-23)
 
 
