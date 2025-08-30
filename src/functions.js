@@ -110,6 +110,11 @@ export async function autoLink(block, allPagesSorted) {
     if (logseq.settings?.pagesToExclude.includes(page)) continue;
     // Skip page if it is not found in content
     if (!content.toLowerCase().includes(page.toLowerCase())) continue;
+    if (logseq.settings?.doNotAutolinkSelf === true) {
+      // Skip page if the current block is inside it
+      const blockPage = await logseq.Editor.getPage(block.page.id);
+      if (blockPage.originalName.toLowerCase() === page.toLowerCase()) continue;
+    }
     // Add text exclusion markers
     const textToExclude = new RegExp(logseq.settings?.textToExclude, "g");
     content = content.replace(textToExclude, (match) => `︿${match}﹀`);

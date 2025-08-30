@@ -172,6 +172,13 @@ const settings = [
     title: "Do not auto-link tags",
   },
   {
+    key: "doNotAutolinkSelf",
+    description: "Do not auto-link a page inside itself",
+    type: "boolean",
+    default: false,
+    title: "Do not auto-link a page inside itself",
+  },
+  {
     key: "runUponPressingEnter",
     description: "Run plugin upon pressing enter",
     type: "boolean",

@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   enableAutoTag: true,
   autoLinkFirstOccuranceOnly: false,
   doNotAutolinkTags: false,
+  doNotAutolinkSelf: false,
   pagesToExclude: "card",
   blocksToExclude: "\\w+::|^#\\+|^```",
   textToExclude: "{{.*?}}|\\[[^\\[]*?\\]|`[^`]+`|\\w+:\\/\\/\\S+",
@@ -22,7 +23,7 @@ const mockLogseq = {
     updateBlock: jest.fn(),
     getCurrentBlock: jest.fn(),
     getBlock: jest.fn(),
-    getPageLinkedReferences: jest.fn(),
+    getPage: jest.fn().mockReturnValue({ originalName: "Bob" }),
   },
   useSettingsSchema: jest.fn(),
   ready: (fn) => Promise.resolve(fn()),
@@ -182,6 +183,16 @@ describe("autoLink function", () => {
       input: {
         uuid: "test-uuid",
       },
+    },
+    {
+      name: "not auto-linking a page inside itself",
+      settings: { doNotAutolinkSelf: true },
+      input: {
+        uuid: "test-uuid",
+        content: "Alice should be linked but bob not.",
+        page: { id: null },
+      },
+      expected: "[[Alice]] should be linked but bob not.",
     },
   ];
 
