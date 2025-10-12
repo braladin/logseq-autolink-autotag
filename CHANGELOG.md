@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/braladin/logseq-autolink-autotag/compare/v1.3.0...v1.3.1) (2025-10-12)
+
+
+### Bug Fixes
+
+* auto-link logic when autoLinkFirstOccuranceOnly true ([10d8613](https://github.com/braladin/logseq-autolink-autotag/commit/10d861369659385b0cd676e03a6b5395deae9c08))
+
 ## [1.3.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.2.4...v1.3.0) (2025-08-30)
 
 
