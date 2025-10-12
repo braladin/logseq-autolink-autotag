@@ -128,9 +128,16 @@ export async function autoLink(block, allPagesSorted) {
     // Only replace first occurrence if setting is enabled
     if (logseq.settings?.autoLinkFirstOccuranceOnly) {
       // Replace only the first occurrence
-      const match = content.match(regex);
-      if (match && !content.includes(`[${page}]`)) {
-        content = content.replace(match[0], `[[${page}]]`);
+      if (!content.includes(`[${page}]`)) {
+        let replacementCount = 0;
+        content = content.replace(regex, (match) => {
+          if (replacementCount === 0) {
+            replacementCount++;
+            return `[[${page}]]`;
+          } else {
+            return `︿${match}﹀`;
+          }
+        });
       }
     } else {
       // Replace all occurrences

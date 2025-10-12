@@ -42,6 +42,7 @@ const allPagesSorted = [
   "Mango juice",
   "Crystal",
   "Alice",
+  "Juice",
   "Mango",
   "Bob",
   "Box",
@@ -98,9 +99,10 @@ describe("autoLink function", () => {
       settings: { autoLinkFirstOccuranceOnly: true },
       input: {
         uuid: "test-uuid",
-        content: "Bob sent an email. Later, bob replied to another email.",
+        content: "Mango juice is the best juice. Mango juice is delicious!",
       },
-      expected: "[[Bob]] sent an email. Later, bob replied to another email.",
+      expected:
+        "[[Mango juice]] is the best [[Juice]]. Mango juice is delicious!",
     },
     {
       name: "not auto-linking second occurence when first occurence already linked",
@@ -172,7 +174,9 @@ describe("autoLink function", () => {
     },
     {
       name: "not auto-linking a block with all pages excluded",
-      settings: { pagesToExclude: ["Alice", "Bob", "Mango", "Mango juice"] },
+      settings: {
+        pagesToExclude: ["Alice", "Bob", "Mango", "Juice", "Mango juice"],
+      },
       input: {
         uuid: "test-uuid",
         content: "Alice, Bob, and Mango juice are all in the excluded list.",
