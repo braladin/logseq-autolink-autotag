@@ -13,12 +13,12 @@
     "supportsDB": true
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.0",
-    "@commitlint/config-conventional": "^19.8.0",
-    "coverage-badges-cli": "^2.1.0",
-    "czg": "^1.11.1",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "coverage-badges-cli": "^2.2.0",
+    "czg": "^1.14.0",
     "husky": "^9.1.7",
-    "jest": "^29.7.0"
+    "jest": "^30.5.2"
   },
   "scripts": {
     "prepare": "husky",
