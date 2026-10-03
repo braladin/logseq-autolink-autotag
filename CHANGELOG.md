@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.3.1...v1.4.0) (2026-10-03)
+
+
+### Features
+
+* support logseq db ([96e64c1](https://github.com/braladin/logseq-autolink-autotag/commit/96e64c106e9270340744373c41c82f73d3a1ba78))
+
 ## [1.3.1](https://github.com/braladin/logseq-autolink-autotag/compare/v1.3.0...v1.3.1) (2025-10-12)
 
 
