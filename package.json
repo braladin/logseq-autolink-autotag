@@ -9,7 +9,8 @@
     "id": "logseq-autolink-autotag",
     "title": "Auto-Link Auto-Tag",
     "icon": "./icon.png",
-    "description": "A Logseq plugin to auto-link pages and auto-tag blocks"
+    "description": "A Logseq plugin to auto-link pages and auto-tag blocks",
+    "supportsDB": true
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",

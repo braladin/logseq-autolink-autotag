@@ -1,6 +1,5 @@
 import {
-  updateAllPagesSorted,
-  updatePagesToTagsMap,
+  getIsDbGraph,
   getPagesToTagsMap,
   autoLinkAutoTagCallback,
 } from "./functions.js";
@@ -9,17 +8,34 @@ async function main() {
   let allPagesSorted = [];
   let pagesToTagsMap = {};
   let currentBlock;
+  let isDbGraph;
+
+  async function refreshGraphData() {
+    isDbGraph = await getIsDbGraph();
+    const result = await getPagesToTagsMap(isDbGraph);
+    allPagesSorted = result.allPagesSorted;
+    pagesToTagsMap = result.pagesToTagsMap;
+  }
+
+  async function runOnCurrentBlock() {
+    const currentBlock = await logseq.Editor.getCurrentBlock();
+    await autoLinkAutoTagCallback(
+      currentBlock,
+      allPagesSorted,
+      pagesToTagsMap,
+      isDbGraph,
+    );
+  }
 
   // Initialize data during idle time to reduce plugin loading time
   window.parent.requestIdleCallback(async () => {
-    const result = await getPagesToTagsMap();
-    allPagesSorted = result.allPagesSorted;
-    pagesToTagsMap = result.pagesToTagsMap;
+    await refreshGraphData();
     logseq.UI.showMsg("Plugin Auto-link Auto-tag ready");
   });
+  logseq.App.onCurrentGraphChanged(refreshGraphData);
 
   logseq.Editor.registerSlashCommand("Auto-link Auto-tag", async () => {
-    await autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
+    await runOnCurrentBlock();
   });
 
   logseq.App.registerCommandShortcut(
@@ -27,16 +43,13 @@ async function main() {
       binding: logseq.settings?.keybinding,
     },
     async () => {
-      autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
+      await runOnCurrentBlock();
     },
   );
 
   window.parent.document.addEventListener("keyup", async (event) => {
-    // Skip keyup events that do not occur when editing blocks
-    // or when modifier keys are pressed
+    if (!(await logseq.Editor.checkEditing())) return;
     if (
-      event.target?.type !== "textarea" ||
-      !event.target?.id.startsWith("edit-block") ||
       event.altKey === true ||
       event.ctrlKey === true ||
       event.metaKey === true ||
@@ -51,11 +64,14 @@ async function main() {
     ) {
       if (logseq.settings.enableConsoleLogging === true)
         console.debug("logseq-autolink-autotag: Enter pressed");
-      autoLinkAutoTagCallback(currentBlock, allPagesSorted, pagesToTagsMap);
+      await autoLinkAutoTagCallback(
+        currentBlock,
+        allPagesSorted,
+        pagesToTagsMap,
+        isDbGraph,
+      );
       return;
     }
-    if (logseq.settings.enableConsoleLogging === true)
-      console.debug("logseq-autolink-autotag: Current block updated");
     currentBlock = await logseq.Editor.getCurrentBlock();
   });
 
@@ -67,46 +83,31 @@ async function main() {
     if (txMeta?.outlinerOp === "create-page") {
       if (logseq.settings.enableConsoleLogging === true)
         console.debug("logseq-autolink-autotag: Detected page creation");
-      updateAllPagesSorted(blocks[0], allPagesSorted);
+      await refreshGraphData();
       return;
     }
 
-    // Detect change in alias or tags
-    if (txMeta?.outlinerOp === "save-block" && blocks.length > 1) {
-      // Detect change in page tags
-      if (blocks[0].content?.includes("tags::")) {
-        if (logseq.settings.enableConsoleLogging === true)
-          console.debug(
-            "logseq-autolink-autotag: Detected change in page tags",
-          );
-        updatePagesToTagsMap(blocks[0], blocks[1], pagesToTagsMap);
-      }
-      // Detect change in page aliases
-      if (
-        blocks[0].content?.includes("alias::") ||
-        blocks[0].content?.includes("aliases::")
-      ) {
-        if (logseq.settings.enableConsoleLogging === true)
-          console.debug(
-            "logseq-autolink-autotag: Detected change in page aliases",
-          );
-        for (const alias of blocks[1].properties?.alias) {
-          updateAllPagesSorted({ originalName: alias }, allPagesSorted);
-          updatePagesToTagsMap(
-            blocks[0],
-            { originalName: alias },
-            pagesToTagsMap,
-          );
-        }
-      }
+    const changedProperties = txData?.some(([, attribute]) =>
+      String(attribute).toLowerCase().includes("propert"),
+    );
+    const changedMarkdownMetadata = blocks?.some((block) =>
+      /(?:tags|aliases?)::/i.test(block.content || ""),
+    );
+    if (
+      changedProperties ||
+      (txMeta?.outlinerOp === "save-block" && changedMarkdownMetadata)
+    ) {
+      if (logseq.settings.enableConsoleLogging === true)
+        console.debug("logseq-autolink-autotag: Refreshing page metadata");
+      await refreshGraphData();
       return;
     }
 
     const potentiallyDeletedPages = blocks?.filter(
       (block) =>
         block.parent === undefined &&
-        block.originalName !== undefined &&
-        block["journal?"] === false,
+        (block.originalName || block.name) &&
+        (block["journal?"] === false || block.type === "page"),
     );
     if (!potentiallyDeletedPages?.length) return;
     // Process each potentially deleted page
@@ -116,7 +117,7 @@ async function main() {
       // If page exits skip to next page in loop
       if (pageEntity) continue;
 
-      const pageNameToRemove = page.originalName;
+      const pageNameToRemove = page.originalName || page.name;
       allPagesSorted = allPagesSorted.filter(
         (pageName) => pageName !== pageNameToRemove,
       );

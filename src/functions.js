@@ -1,4 +1,4 @@
-export async function autoTag(block, pagesToTagsMap) {
+export async function autoTag(block, pagesToTagsMap, isDbGraph = false) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting autoTag");
   if (!block?.content) {
@@ -49,6 +49,17 @@ export async function autoTag(block, pagesToTagsMap) {
     return;
   }
 
+  if (isDbGraph && logseq.settings?.tagAsLink !== true) {
+    await Promise.all(
+      cleanedUpTags.map(async (tag) => {
+        const tagEntity = await logseq.Editor.getTag(tag);
+        if (tagEntity?.uuid)
+          await logseq.Editor.addBlockTag(block.uuid, tagEntity.uuid);
+      }),
+    );
+    return;
+  }
+
   if (logseq.settings.enableConsoleLogging === true)
     console.debug(`logseq-autolink-autotag: tags: ${cleanedUpTags.join(", ")}`);
 
@@ -66,6 +77,7 @@ export async function autoTag(block, pagesToTagsMap) {
     tagsString += tag + " ";
   }
   tagsString = tagsString.trim();
+  if (!tagsString) return;
   if (logseq.settings?.tagInTheBeginning) {
     const todoRegexWithPriority =
       /^(TODO|LATER|NOW|DOING|IN-PROGRESS|DONE|CANCELED|CANCELLED|WAITING|WAIT)?(?:\s)?(\[#[A-C]\])?/i;
@@ -113,7 +125,8 @@ export async function autoLink(block, allPagesSorted) {
     if (logseq.settings?.doNotAutolinkSelf === true) {
       // Skip page if the current block is inside it
       const blockPage = await logseq.Editor.getPage(block.page.id);
-      if (blockPage.originalName.toLowerCase() === page.toLowerCase()) continue;
+      const blockPageName = blockPage.originalName || blockPage.name;
+      if (blockPageName?.toLowerCase() === page.toLowerCase()) continue;
     }
     // Add text exclusion markers
     const textToExclude = new RegExp(logseq.settings?.textToExclude, "g");
@@ -162,16 +175,17 @@ export async function autoLink(block, allPagesSorted) {
 export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting updateAllPagesSorted");
+  const pageName = newPageEntity.originalName || newPageEntity.name;
   // Check if the page already exists in the sorted list and return early if it does
-  if (allPagesSorted.includes(newPageEntity.originalName)) {
+  if (allPagesSorted.includes(pageName)) {
     if (logseq.settings.enableConsoleLogging === true)
       console.debug(
-        `logseq-autolink-autotag: ${newPageEntity.originalName} already exists in AllPagesSorted`,
+        `logseq-autolink-autotag: ${pageName} already exists in AllPagesSorted`,
       );
     return;
   }
   // Find the correct position to insert the new page based on name length
-  const newPageLength = newPageEntity.originalName?.length || 0;
+  const newPageLength = pageName?.length || 0;
   if (newPageLength === 0) return;
   let insertIndex = 0;
   while (
@@ -182,70 +196,118 @@ export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   }
 
   // Insert the new page at the correct position
-  allPagesSorted.splice(insertIndex, 0, newPageEntity.originalName);
+  allPagesSorted.splice(insertIndex, 0, pageName);
   if (logseq.settings.enableConsoleLogging === true)
     console.debug(
-      `logseq-autolink-autotag: Added ${newPageEntity.originalName} to AllPagesSorted`,
+      `logseq-autolink-autotag: Added ${pageName} to AllPagesSorted`,
     );
+}
+
+function getEntityName(entity) {
+  if (typeof entity === "string") return entity.trim();
+  return entity?.originalName || entity?.name || entity?.title;
+}
+
+function normalizeTagNames(tags) {
+  const values = Array.isArray(tags) ? tags : [tags];
+  return values
+    .map(getEntityName)
+    .filter((tag) => typeof tag === "string" && tag.length > 0)
+    .map((tag) => tag.replace(/[#\[\]]/g, ""));
+}
+
+export async function getIsDbGraph() {
+  try {
+    return await logseq.App.checkCurrentIsDbGraph();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("Not existed method #checkCurrentIsDbGraph"))
+      return false;
+    throw error;
+  }
+}
+
+function isSupportedPage(page) {
+  const pageName = page.originalName || page.name;
+  const isPageType =
+    !page.type || page.type === "page" || page.type === "journal";
+  return Boolean(
+    pageName &&
+    isPageType &&
+    page["journal?"] !== true &&
+    page.type !== "journal",
+  );
+}
+
+async function isUsedAsTag(page, isDbGraph) {
+  if (isDbGraph) {
+    const taggedObjects = await logseq.Editor.getTagObjects(page.uuid);
+    return Boolean(taggedObjects?.length);
+  }
+
+  const references = await logseq.Editor.getPageLinkedReferences(page.uuid);
+  return Boolean(
+    references?.some(([, blocks]) =>
+      blocks.some((block) =>
+        block.content?.includes(`#${page.originalName || page.name}`),
+      ),
+    ),
+  );
 }
 
 export function updatePagesToTagsMap(block, page, pagesToTagsMap) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting updatePagesToTagsMap");
-  const tagsRegex = /tags::\s*(.*)/;
-  const tagsString = block.content.match(tagsRegex)?.[1] || "";
-  const tags = tagsString
-    .split(",")
-    .map((tag) => tag.trim().replace(/[#\[\]]/g, ""))
-    .filter((tag) => tag.length > 0);
-  pagesToTagsMap[page.originalName] = tags;
+  const pageName = page.originalName || page.name;
+  if (!pageName) return;
+
+  const propertyTags = page.properties?.tags;
+  const tags =
+    propertyTags !== undefined
+      ? normalizeTagNames(propertyTags)
+      : (block?.content?.match(/tags::\s*(.*)/)?.[1] || "")
+          .split(",")
+          .map((tag) => tag.trim().replace(/[#\[\]]/g, ""))
+          .filter((tag) => tag.length > 0);
+  pagesToTagsMap[pageName] = tags;
   if (logseq.settings.enableConsoleLogging === true)
     console.debug(
-      `logseq-autolink-autotag: Updated page ${page.originalName} with tags ${tags}`,
+      `logseq-autolink-autotag: Updated page ${pageName} with tags ${tags}`,
     );
 }
 
-export async function getPagesToTagsMap() {
+export async function getPagesToTagsMap(isDbGraph = false) {
   const pageEntities = await logseq.Editor.getAllPages();
   const pagesToTagsMap = {};
+  const supportedPages = pageEntities.filter(isSupportedPage);
+  const pages = logseq.settings.doNotAutolinkTags
+    ? (
+        await Promise.all(
+          supportedPages.map(async (page) => ({
+            page,
+            isTag: await isUsedAsTag(page, isDbGraph),
+          })),
+        )
+      )
+        .filter(({ isTag }) => !isTag)
+        .map(({ page }) => page)
+    : supportedPages;
 
-  // Process pages
-  pageLoop: for (const page of pageEntities) {
-    // Skip journal pages
-    if (page["journal?"] === true) continue;
-
-    if (logseq.settings.doNotAutolinkTags === true) {
-      // Skip pages used as tags in the graph
-      const references = await logseq.Editor.getPageLinkedReferences(page.uuid);
-      if (references) {
-        for (const reference of references) {
-          for (const block of reference[1]) {
-            if (block.content?.includes(`#${page.originalName}`)) {
-              continue pageLoop;
-            }
-          }
-        }
-      }
-    }
-
+  for (const page of pages) {
+    const pageName = page.originalName || page.name;
     // Store page names and tags
-    pagesToTagsMap[page.originalName] = page.properties?.tags
-      ? page.properties?.tags
-      : undefined;
+    pagesToTagsMap[pageName] = normalizeTagNames(page.properties?.tags);
   }
 
   // Process aliases in a separate loop to avoid overwriting tags
-  for (const page of pageEntities) {
-    // Skip journal pages
-    if (page["journal?"] === true) continue;
-
+  for (const page of pages) {
     // Store alias names with the tags of the pages they point to
-    if (page.properties?.alias) {
-      for (const alias of page.properties.alias) {
-        pagesToTagsMap[alias] = page.properties?.tags
-          ? page.properties?.tags
-          : undefined;
-      }
+    const aliases = page.properties?.alias ?? page.properties?.aliases;
+    const aliasList = Array.isArray(aliases) ? aliases : [aliases];
+    for (const aliasValue of aliasList) {
+      const alias = getEntityName(aliasValue);
+      if (alias)
+        pagesToTagsMap[alias] = normalizeTagNames(page.properties?.tags);
     }
   }
 
@@ -262,6 +324,7 @@ export async function autoLinkAutoTagCallback(
   block,
   allPagesSorted,
   pagesToTagsMap,
+  isDbGraph = false,
 ) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting autoLinkAutoTagCallback");
@@ -279,7 +342,7 @@ export async function autoLinkAutoTagCallback(
     block = await autoLink(block, allPagesSorted);
   }
   if (logseq.settings?.enableAutoTag) {
-    await autoTag(block, pagesToTagsMap);
+    await autoTag(block, pagesToTagsMap, isDbGraph);
   }
   block = undefined;
 }

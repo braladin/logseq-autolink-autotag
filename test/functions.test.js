@@ -21,14 +21,20 @@ const mockLogseq = {
   settings: { ...DEFAULT_SETTINGS },
   Editor: {
     updateBlock: jest.fn(),
+    addBlockTag: jest.fn(),
     getCurrentBlock: jest.fn(),
     getBlock: jest.fn(),
     getPage: jest.fn().mockReturnValue({ originalName: "Bob" }),
+    getTag: jest.fn(async (name) => ({ uuid: `${name}-uuid` })),
+    getAllPages: jest.fn(),
+    getPageLinkedReferences: jest.fn(),
+    getTagObjects: jest.fn(),
   },
   useSettingsSchema: jest.fn(),
   ready: (fn) => Promise.resolve(fn()),
   App: {
     registerCommandShortcut: jest.fn(),
+    checkCurrentIsDbGraph: jest.fn(),
   },
   DB: {
     onChanged: jest.fn(),
@@ -223,6 +229,18 @@ describe("autoLink function", () => {
       }
     });
   });
+
+  it("uses DB page name when originalName is absent for self-link exclusion", async () => {
+    mockLogseq.settings = { ...DEFAULT_SETTINGS, doNotAutolinkSelf: true };
+    mockLogseq.Editor.getPage.mockResolvedValueOnce({ name: "Bob" });
+
+    const result = await functions.autoLink(
+      { uuid: "test-uuid", page: { id: 1 }, content: "Bob and Alice" },
+      allPagesSorted,
+    );
+
+    expect(result.content).toBe("Bob and [[Alice]]");
+  });
 });
 
 const pagesToTagsMap = {
@@ -334,6 +352,13 @@ describe("autoTag function", () => {
         content: "[[John]] is tall.",
       },
     },
+    {
+      name: "not updating a block when all derived tags already exist",
+      input: {
+        uuid: "test-uuid",
+        content: "[[Alice]] likes [[Mango]]. #friend #fruit",
+      },
+    },
   ];
 
   // Run parameterized tests
@@ -356,6 +381,24 @@ describe("autoTag function", () => {
         expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
       }
     });
+  });
+
+  it("adds derived tags as native DB relations", async () => {
+    await functions.autoTag(
+      { uuid: "test-uuid", content: "[[Alice]] likes [[Mango]]." },
+      pagesToTagsMap,
+      true,
+    );
+
+    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledWith(
+      "test-uuid",
+      "friend-uuid",
+    );
+    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledWith(
+      "test-uuid",
+      "fruit-uuid",
+    );
+    expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
   });
 });
 
@@ -420,6 +463,20 @@ describe("updatePagesToTagsMap function", () => {
       },
       expected: [],
     },
+    {
+      name: "reading structured tags from a DB page entity",
+      input: {
+        block: {},
+        page: {
+          name: "Alice",
+          properties: {
+            tags: [{ name: "person" }, { originalName: "friend" }],
+          },
+        },
+        pagesToTagsMap: pagesToTagsMap,
+      },
+      expected: ["person", "friend"],
+    },
   ];
 
   // Run parameterized tests
@@ -432,8 +489,71 @@ describe("updatePagesToTagsMap function", () => {
       functions.updatePagesToTagsMap(input.block, input.page, testMap);
 
       // Verify the result
-      expect(testMap[input.page.originalName]).toEqual(expected);
+      expect(testMap[input.page.originalName || input.page.name]).toEqual(
+        expected,
+      );
     });
+  });
+});
+
+describe("getPagesToTagsMap function", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLogseq.settings = { ...DEFAULT_SETTINGS };
+  });
+
+  it("normalizes DB page names, tags, and aliases", async () => {
+    mockLogseq.Editor.getAllPages.mockResolvedValue([
+      {
+        name: "Alice",
+        type: "page",
+        properties: {
+          tags: [{ name: "person" }],
+          aliases: [{ name: "Al" }],
+        },
+      },
+      { name: "Todo", type: "property" },
+    ]);
+
+    const result = await functions.getPagesToTagsMap();
+
+    expect(result.allPagesSorted).toEqual(["Alice", "Al"]);
+    expect(result.pagesToTagsMap).toEqual({
+      Alice: ["person"],
+      Al: ["person"],
+    });
+  });
+
+  it("uses native tag relations when excluding tag pages in DB graphs", async () => {
+    mockLogseq.settings.doNotAutolinkTags = true;
+    mockLogseq.Editor.getAllPages.mockResolvedValue([
+      { name: "Topic", uuid: "topic-uuid", type: "page" },
+      { name: "Regular", uuid: "regular-uuid", type: "page" },
+    ]);
+    mockLogseq.Editor.getTagObjects.mockImplementation(async (uuid) =>
+      uuid === "topic-uuid" ? [{ uuid: "block-uuid" }] : [],
+    );
+
+    const result = await functions.getPagesToTagsMap(true);
+
+    expect(result.allPagesSorted).toEqual(["Regular"]);
+    expect(mockLogseq.Editor.getPageLinkedReferences).not.toHaveBeenCalled();
+  });
+});
+
+describe("getIsDbGraph function", () => {
+  it("falls back to Markdown graph mode when older SDK lacks graph detection", async () => {
+    mockLogseq.App.checkCurrentIsDbGraph.mockRejectedValueOnce(
+      new Error("Not existed method #checkCurrentIsDbGraph"),
+    );
+
+    await expect(functions.getIsDbGraph()).resolves.toBe(false);
+  });
+
+  it("returns graph mode reported by SDK", async () => {
+    mockLogseq.App.checkCurrentIsDbGraph.mockResolvedValueOnce(true);
+
+    await expect(functions.getIsDbGraph()).resolves.toBe(true);
   });
 });
 
