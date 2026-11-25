@@ -8,6 +8,12 @@
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash"
+    },
+    {
+      "description": "Keep Jest on v29 after npm audit fix --force downgraded it from v30",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["jest"],
+      "allowedVersions": "<30"
     }
   ]
 }
