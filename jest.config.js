@@ -12,7 +12,7 @@ export default {
     "!**/coverage/**",
     "!jest.config.js",
     "!src/lsplugin.user.js",
-    "!src/main.js", // TODO: Remove this after finding a way to test main.js with Jest
+
   ],
   coverageReporters: ["text", "json-summary"],
 };

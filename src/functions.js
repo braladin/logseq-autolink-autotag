@@ -81,13 +81,11 @@ export async function autoTag(block, pagesToTagsMap, isDbGraph = false) {
   if (logseq.settings?.tagInTheBeginning) {
     const todoRegexWithPriority =
       /^(TODO|LATER|NOW|DOING|IN-PROGRESS|DONE|CANCELED|CANCELLED|WAITING|WAIT)?(?:\s)?(\[#[A-C]\])?/i;
-    const match = content.match(todoRegexWithPriority);
-    if (match) {
-      content = content.replace(todoRegexWithPriority, "").trim();
-      const taskState = match[1] ? `${match[1]} ` : "";
-      const taskPrio = match[2] ? `${match[2]} ` : "";
-      content = `${taskState}${taskPrio}${tagsString} ${content}`;
-    }
+    const [, state, priority] = content.match(todoRegexWithPriority);
+    content = content.replace(todoRegexWithPriority, "").trim();
+    const taskState = state ? `${state} ` : "";
+    const taskPrio = priority ? `${priority} ` : "";
+    content = `${taskState}${taskPrio}${tagsString} ${content}`;
   } else {
     content = `${content} ${tagsString}`;
   }
@@ -205,7 +203,7 @@ export function updateAllPagesSorted(newPageEntity, allPagesSorted) {
   let insertIndex = 0;
   while (
     insertIndex < allPagesSorted.length &&
-    (allPagesSorted[insertIndex].length || 0) > newPageLength
+    allPagesSorted[insertIndex].length > newPageLength
   ) {
     insertIndex++;
   }
