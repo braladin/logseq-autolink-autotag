@@ -26,4 +26,6 @@ At first, I thought I just need to develop an automatic tagger plugin and keep u
 - Option: Exclude any text pattern from processing e.g. `{{.*}}`
 - Option: Auto-link plural form of pages e.g. `Mangos` -> `[[Mango]]s`
 
+In a Markdown graph, auto-tag reads the linked pages’ `tags::` property and inserts tags into the block text. **Tag as link** and **Tag in the beginning** apply only to Markdown graphs. In a DB graph, auto-tag reads the linked pages’ native tags and adds them to the block’s **Tags** property without editing the block text.
+
 ![Examples](examples.png)

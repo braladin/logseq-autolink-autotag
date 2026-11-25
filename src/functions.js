@@ -30,17 +30,15 @@ export async function autoTag(block, pagesToTagsMap, isDbGraph = false) {
     console.debug(`logseq-autolink-autotag: linked pages: ${pages.join(", ")}`);
 
   // Collect tags from all linked pages
-  const tags = pages
-    .filter((page) => pagesToTagsMap[page] !== undefined)
-    .flatMap((page) => pagesToTagsMap[page]);
-
-  // Remove duplicate tags
-  const uniqueTags = [...new Set(tags)];
-
-  // Remove #Parent tag if a child tag #[[Parent/Child]] is present
-  const cleanedUpTags = uniqueTags.filter(
-    (tag) => uniqueTags.filter((t) => t.includes(tag + "/")).length === 0,
+  const tags = pages.flatMap((page) =>
+    Object.hasOwn(pagesToTagsMap, page) ? (pagesToTagsMap[page] ?? []) : [],
   );
+
+  const uniqueTags = [...new Set(tags)];
+  // Slash-delimited tag hierarchies are specific to Markdown graphs.
+  const cleanedUpTags = isDbGraph
+    ? [...new Map(tags.map((tag) => [tag.uuid, tag])).values()]
+    : uniqueTags.filter((tag) => !uniqueTags.some((t) => t.includes(tag + "/")));
 
   // Return early if no tags were found
   if (!cleanedUpTags?.length) {
@@ -49,19 +47,21 @@ export async function autoTag(block, pagesToTagsMap, isDbGraph = false) {
     return;
   }
 
-  if (isDbGraph && logseq.settings?.tagAsLink !== true) {
-    await Promise.all(
-      cleanedUpTags.map(async (tag) => {
-        const tagEntity = await logseq.Editor.getTag(tag);
-        if (tagEntity?.uuid)
-          await logseq.Editor.addBlockTag(block.uuid, tagEntity.uuid);
-      }),
-    );
+  const tagNames = cleanedUpTags.map((tag) => (isDbGraph ? tag.title : tag));
+  if (logseq.settings.enableConsoleLogging === true)
+    console.debug(`logseq-autolink-autotag: tags: ${tagNames.join(", ")}`);
+
+  if (isDbGraph) {
+    for (const { id, uuid } of cleanedUpTags) {
+      const alreadyTagged = block.tags?.some((tag) =>
+        typeof tag === "object"
+          ? tag?.uuid === uuid || (id != null && tag?.id === id)
+          : tag === uuid || tag === id,
+      );
+      if (!alreadyTagged) await logseq.Editor.addBlockTag(block.uuid, uuid);
+    }
     return;
   }
-
-  if (logseq.settings.enableConsoleLogging === true)
-    console.debug(`logseq-autolink-autotag: tags: ${cleanedUpTags.join(", ")}`);
 
   // Update content with tags
   let tagsString = "";
@@ -97,11 +97,11 @@ export async function autoTag(block, pagesToTagsMap, isDbGraph = false) {
 
   if (logseq.settings.enableConsoleLogging === true)
     console.info(
-      `logseq-autolink-autotag: Auto-tagged block with tags: ${cleanedUpTags.join(", ")}`,
+      `logseq-autolink-autotag: Auto-tagged block with tags: ${tagNames.join(", ")}`,
     );
 }
 
-export async function autoLink(block, allPagesSorted) {
+export async function autoLink(block, allPagesSorted, pageUuids) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting autoLink");
   if (!block?.content) {
@@ -138,15 +138,21 @@ export async function autoLink(block, allPagesSorted) {
       ? "(?=\\b|s\\b|es\\b)"
       : "\\b";
     const regex = new RegExp(`\\b${pageName}${plural}(?![^︿]*﹀)`, "gi");
+    const linkTarget = pageUuids?.[page] ?? page;
+    const link = `[[${linkTarget}]]`;
+    const beforeLinking = content;
     // Only replace first occurrence if setting is enabled
     if (logseq.settings?.autoLinkFirstOccuranceOnly) {
       // Replace only the first occurrence
-      if (!content.includes(`[${page}]`)) {
+      if (
+        !content.includes(`[${page}]`) &&
+        !content.includes(`[${linkTarget}]`)
+      ) {
         let replacementCount = 0;
         content = content.replace(regex, (match) => {
           if (replacementCount === 0) {
             replacementCount++;
-            return `[[${page}]]`;
+            return link;
           } else {
             return `︿${match}﹀`;
           }
@@ -154,7 +160,16 @@ export async function autoLink(block, allPagesSorted) {
       }
     } else {
       // Replace all occurrences
-      content = content.replace(regex, `[[${page}]]`);
+      content = content.replace(regex, () => link);
+    }
+    if (
+      pageUuids &&
+      content !== beforeLinking &&
+      logseq.settings.enableConsoleLogging === true
+    ) {
+      console.debug(
+        `logseq-autolink-autotag: DB autolink target ${JSON.stringify(page)} -> ${linkTarget}`,
+      );
     }
   }
 
@@ -239,12 +254,7 @@ function isSupportedPage(page) {
   );
 }
 
-async function isUsedAsTag(page, isDbGraph) {
-  if (isDbGraph) {
-    const taggedObjects = await logseq.Editor.getTagObjects(page.uuid);
-    return Boolean(taggedObjects?.length);
-  }
-
+async function isUsedAsTag(page) {
   const references = await logseq.Editor.getPageLinkedReferences(page.uuid);
   return Boolean(
     references?.some(([, blocks]) =>
@@ -276,7 +286,77 @@ export function updatePagesToTagsMap(block, page, pagesToTagsMap) {
     );
 }
 
+async function getDbPagesToTagsMap() {
+  // getAllPages() does not pull the native tag or alias relationships.
+  const pages = await logseq.DB.datascriptQuery(`[:find [(pull ?page
+    [:block/uuid :block/title :block/journal-day
+     {:block/tags [:db/id :db/ident :block/uuid :block/title]}
+     {:block/alias [:block/uuid :block/title]}]) ...]
+    :where
+    [?page :block/name]
+    (not [?page :logseq.property/deleted-at])
+    [(get-else $ ?page :logseq.property/hide? false) ?hidden]
+    [(false? ?hidden)]]`);
+  const pagesToTagsMap = Object.create(null);
+  const pageUuids = Object.create(null);
+  const aliases = [];
+  const internalTags = new Set([
+    ":logseq.class/Page",
+    ":logseq.class/Tag",
+    ":logseq.class/Journal",
+    ":logseq.class/Property",
+  ]);
+
+  for (const page of pages ?? []) {
+    if (!page.uuid || !page.title || page["journal-day"]) continue;
+    const nativeTags = page.tags ?? [];
+    if (
+      nativeTags.some(
+        ({ ident }) =>
+          ident === ":logseq.class/Property" || ident === ":logseq.class/Journal",
+      )
+    ) {
+      continue;
+    }
+
+    const tags = nativeTags.filter(
+      ({ ident, uuid }) => uuid && !internalTags.has(ident),
+    );
+    const isTag = nativeTags.some(({ ident }) => ident === ":logseq.class/Tag");
+    pagesToTagsMap[page.uuid] = tags;
+    if (!isTag || !Object.hasOwn(pagesToTagsMap, page.title)) {
+      pagesToTagsMap[page.title] = tags;
+    }
+    if (!logseq.settings.doNotAutolinkTags || !isTag) {
+      if (!isTag || !Object.hasOwn(pageUuids, page.title)) {
+        pageUuids[page.title] = page.uuid;
+      }
+    }
+    for (const alias of page.alias ?? []) {
+      aliases.push({ alias, tags, isTag });
+    }
+  }
+
+  for (const { alias, tags, isTag } of aliases) {
+    if (alias.uuid) pagesToTagsMap[alias.uuid] = tags;
+    if (!alias.title) continue;
+    pagesToTagsMap[alias.title] = tags;
+    if (alias.uuid && (!logseq.settings.doNotAutolinkTags || !isTag)) {
+      // Link to the alias itself so Logseq displays its title, not the source title.
+      pageUuids[alias.title] = alias.uuid;
+    }
+  }
+
+  return {
+    allPagesSorted: Object.keys(pageUuids).sort((a, b) => b.length - a.length),
+    pagesToTagsMap,
+    pageUuids,
+  };
+}
+
 export async function getPagesToTagsMap(isDbGraph = false) {
+  if (isDbGraph) return getDbPagesToTagsMap();
+
   const pageEntities = await logseq.Editor.getAllPages();
   const pagesToTagsMap = {};
   const supportedPages = pageEntities.filter(isSupportedPage);
@@ -285,7 +365,7 @@ export async function getPagesToTagsMap(isDbGraph = false) {
         await Promise.all(
           supportedPages.map(async (page) => ({
             page,
-            isTag: await isUsedAsTag(page, isDbGraph),
+            isTag: await isUsedAsTag(page),
           })),
         )
       )
@@ -325,13 +405,14 @@ export async function autoLinkAutoTagCallback(
   allPagesSorted,
   pagesToTagsMap,
   isDbGraph = false,
+  pageUuids,
 ) {
   if (logseq.settings.enableConsoleLogging === true)
     console.debug("logseq-autolink-autotag: Starting autoLinkAutoTagCallback");
   if (!block?.uuid) return;
   block = await logseq.Editor.getBlock(block.uuid);
   // Skip if block is empty
-  if (!block.content) return;
+  if (!block?.content) return;
   // Skip if block is excluded by user settings
   if (new RegExp(logseq.settings.blocksToExclude).test(block.content)) return;
   if (logseq.settings.enableConsoleLogging === true)
@@ -339,7 +420,7 @@ export async function autoLinkAutoTagCallback(
       `logseq-autolink-autotag: Running on current block with content "${block.content}"`,
     );
   if (logseq.settings?.enableAutoLink) {
-    block = await autoLink(block, allPagesSorted);
+    block = await autoLink(block, allPagesSorted, pageUuids);
   }
   if (logseq.settings?.enableAutoTag) {
     await autoTag(block, pagesToTagsMap, isDbGraph);

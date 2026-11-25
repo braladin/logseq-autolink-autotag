@@ -9,22 +9,32 @@ async function main() {
   let pagesToTagsMap = {};
   let currentBlock;
   let isDbGraph;
+  let pageUuids;
+  let dbMetadataDirty = false;
 
   async function refreshGraphData() {
-    isDbGraph = await getIsDbGraph();
-    const result = await getPagesToTagsMap(isDbGraph);
+    dbMetadataDirty = false;
+    const dbGraph = await getIsDbGraph();
+    const result = await getPagesToTagsMap(dbGraph);
+    isDbGraph = dbGraph;
     allPagesSorted = result.allPagesSorted;
     pagesToTagsMap = result.pagesToTagsMap;
+    pageUuids = result.pageUuids;
   }
 
-  async function runOnCurrentBlock() {
-    const currentBlock = await logseq.Editor.getCurrentBlock();
+  async function runOnBlock(block) {
+    if (dbMetadataDirty || isDbGraph === undefined) await refreshGraphData();
     await autoLinkAutoTagCallback(
-      currentBlock,
+      block,
       allPagesSorted,
       pagesToTagsMap,
       isDbGraph,
+      pageUuids,
     );
+  }
+
+  async function runOnCurrentBlock() {
+    await runOnBlock(await logseq.Editor.getCurrentBlock());
   }
 
   // Initialize data during idle time to reduce plugin loading time
@@ -64,18 +74,26 @@ async function main() {
     ) {
       if (logseq.settings.enableConsoleLogging === true)
         console.debug("logseq-autolink-autotag: Enter pressed");
-      await autoLinkAutoTagCallback(
-        currentBlock,
-        allPagesSorted,
-        pagesToTagsMap,
-        isDbGraph,
-      );
+      await runOnBlock(currentBlock);
       return;
     }
     currentBlock = await logseq.Editor.getCurrentBlock();
   });
 
   logseq.DB.onChanged(async ({ blocks, txData, txMeta }) => {
+    if (isDbGraph) {
+      // Defer the query so a batch of tag/alias changes only invalidates the cache once.
+      if (
+        txMeta?.outlinerOp === "create-page" ||
+        txData?.some(([, attribute]) =>
+          /(?:^|[:/])(?:name|tags|alias|hide\?|deleted-at)$/.test(String(attribute)),
+        )
+      ) {
+        dbMetadataDirty = true;
+      }
+      return;
+    }
+
     // Ignore changes that are not relevant to the plugin
     if (txMeta?.["skipRefresh?"] === true) return;
 
@@ -188,14 +206,14 @@ const settings = [
   },
   {
     key: "tagAsLink",
-    description: "Auto-tag with [[tag]] instead of #tag",
+    description: "Insert links instead of #tags (Markdown graphs only)",
     type: "boolean",
     default: false,
     title: "Tag as link",
   },
   {
     key: "tagInTheBeginning",
-    description: "Insert tags in the beginning of block",
+    description: "Insert tags at the beginning of the block (Markdown graphs only)",
     type: "boolean",
     default: false,
     title: "Tag in the beginning",

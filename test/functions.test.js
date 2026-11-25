@@ -25,10 +25,8 @@ const mockLogseq = {
     getCurrentBlock: jest.fn(),
     getBlock: jest.fn(),
     getPage: jest.fn().mockReturnValue({ originalName: "Bob" }),
-    getTag: jest.fn(async (name) => ({ uuid: `${name}-uuid` })),
     getAllPages: jest.fn(),
     getPageLinkedReferences: jest.fn(),
-    getTagObjects: jest.fn(),
   },
   useSettingsSchema: jest.fn(),
   ready: (fn) => Promise.resolve(fn()),
@@ -38,6 +36,7 @@ const mockLogseq = {
   },
   DB: {
     onChanged: jest.fn(),
+    datascriptQuery: jest.fn(),
   },
 };
 
@@ -382,24 +381,6 @@ describe("autoTag function", () => {
       }
     });
   });
-
-  it("adds derived tags as native DB relations", async () => {
-    await functions.autoTag(
-      { uuid: "test-uuid", content: "[[Alice]] likes [[Mango]]." },
-      pagesToTagsMap,
-      true,
-    );
-
-    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledWith(
-      "test-uuid",
-      "friend-uuid",
-    );
-    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledWith(
-      "test-uuid",
-      "fruit-uuid",
-    );
-    expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
-  });
 });
 
 describe("updatePagesToTagsMap function", () => {
@@ -502,7 +483,7 @@ describe("getPagesToTagsMap function", () => {
     mockLogseq.settings = { ...DEFAULT_SETTINGS };
   });
 
-  it("normalizes DB page names, tags, and aliases", async () => {
+  it("normalizes structured Markdown page names, tags, and aliases", async () => {
     mockLogseq.Editor.getAllPages.mockResolvedValue([
       {
         name: "Alice",
@@ -523,20 +504,128 @@ describe("getPagesToTagsMap function", () => {
       Al: ["person"],
     });
   });
+});
 
-  it("uses native tag relations when excluding tag pages in DB graphs", async () => {
-    mockLogseq.settings.doNotAutolinkTags = true;
-    mockLogseq.Editor.getAllPages.mockResolvedValue([
-      { name: "Topic", uuid: "topic-uuid", type: "page" },
-      { name: "Regular", uuid: "regular-uuid", type: "page" },
+describe("DB graph autotag", () => {
+  const alice = "1cfe906a-27b6-4db4-9ea3-ad9ad28c7d41";
+  const alias = "2cfe906a-27b6-4db4-9ea3-ad9ad28c7d41";
+  const friend = {
+    id: 101,
+    uuid: "3cfe906a-27b6-4db4-9ea3-ad9ad28c7d41",
+    title: "Friend",
+  };
+  const colleague = {
+    id: 102,
+    uuid: "4cfe906a-27b6-4db4-9ea3-ad9ad28c7d41",
+    title: "Colleague",
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLogseq.settings = { ...DEFAULT_SETTINGS };
+    mockLogseq.DB.datascriptQuery.mockResolvedValue([
+      {
+        uuid: alice,
+        title: "Alice",
+        tags: [
+          { uuid: "root-page", ident: ":logseq.class/Page" },
+          friend,
+          colleague,
+        ],
+        alias: [{ uuid: alias, title: "Al" }],
+      },
+      {
+        ...friend,
+        tags: [{ uuid: "root-tag", ident: ":logseq.class/Tag" }, colleague],
+      },
+      {
+        uuid: "status",
+        title: "Status",
+        tags: [{ ident: ":logseq.class/Property" }],
+      },
+      { uuid: "today", title: "Today", "journal-day": 20261125 },
+      { uuid: "untagged", title: "Untagged" },
     ]);
-    mockLogseq.Editor.getTagObjects.mockImplementation(async (uuid) =>
-      uuid === "topic-uuid" ? [{ uuid: "block-uuid" }] : [],
-    );
+  });
 
+  it("indexes native page and alias relations without fetching individual pages", async () => {
     const result = await functions.getPagesToTagsMap(true);
 
-    expect(result.allPagesSorted).toEqual(["Regular"]);
+    expect(result.allPagesSorted).toEqual(["Untagged", "Friend", "Alice", "Al"]);
+    expect(result.pageUuids.Alice).toBe(alice);
+    expect(result.pageUuids.Al).toBe(alias);
+    for (const key of [alice, alias, "Alice", "Al"]) {
+      expect(result.pagesToTagsMap[key]).toEqual([friend, colleague]);
+    }
+    expect(result.pagesToTagsMap.Untagged).toEqual([]);
+    expect(mockLogseq.DB.datascriptQuery).toHaveBeenCalledTimes(1);
+    expect(mockLogseq.Editor.getAllPages).not.toHaveBeenCalled();
+  });
+
+  it("applies UUID tags once even when several links yield the same tag", async () => {
+    const { pagesToTagsMap } = await functions.getPagesToTagsMap(true);
+    await functions.autoTag(
+      {
+        uuid: "block",
+        content: `[[${alice}]] and [[${alias}]]`,
+        tags: [{ id: friend.id }],
+      },
+      pagesToTagsMap,
+      true,
+    );
+
+    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledTimes(1);
+    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledWith("block", colleague.uuid);
+    expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
+  });
+
+  it("links an alias by its own UUID and autotags it in the same run", async () => {
+    const { allPagesSorted, pagesToTagsMap, pageUuids } =
+      await functions.getPagesToTagsMap(true);
+    const block = { uuid: "block", content: "I met al today." };
+    mockLogseq.Editor.getBlock.mockResolvedValue(block);
+
+    await functions.autoLinkAutoTagCallback(
+      block,
+      allPagesSorted,
+      pagesToTagsMap,
+      true,
+      pageUuids,
+    );
+
+    expect(mockLogseq.Editor.updateBlock).toHaveBeenCalledWith(
+      "block",
+      `I met [[${alias}]] today.`,
+    );
+    expect(mockLogseq.Editor.addBlockTag.mock.calls).toEqual([
+      ["block", friend.uuid],
+      ["block", colleague.uuid],
+    ]);
+  });
+
+  it("sets native DB tags even when Markdown tag formatting is enabled", async () => {
+    mockLogseq.settings.tagAsLink = true;
+    mockLogseq.settings.tagInTheBeginning = true;
+    const { pagesToTagsMap } = await functions.getPagesToTagsMap(true);
+    const block = { uuid: "block", content: `[[${alice}]]` };
+    await functions.autoTag(block, pagesToTagsMap, true);
+
+    expect(mockLogseq.Editor.addBlockTag.mock.calls).toEqual([
+      ["block", friend.uuid],
+      ["block", colleague.uuid],
+    ]);
+    expect(mockLogseq.Editor.updateBlock).not.toHaveBeenCalled();
+  });
+
+  it("excludes tag pages from autolinking but still autotags existing links to them", async () => {
+    mockLogseq.settings.doNotAutolinkTags = true;
+    const { allPagesSorted, pagesToTagsMap } = await functions.getPagesToTagsMap(true);
+    expect(allPagesSorted).not.toContain("Friend");
+
+    await functions.autoTag(
+      { uuid: "block", content: `[[${friend.uuid}]]` }, pagesToTagsMap, true,
+    );
+    expect(mockLogseq.Editor.addBlockTag).toHaveBeenCalledWith("block", colleague.uuid);
     expect(mockLogseq.Editor.getPageLinkedReferences).not.toHaveBeenCalled();
   });
 });
