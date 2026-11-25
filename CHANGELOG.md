@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/braladin/logseq-autolink-autotag/compare/v1.3.1...v1.4.0) (2026-11-25)
+
+
+### Features
+
+* support logseq db ([96e64c1](https://github.com/braladin/logseq-autolink-autotag/commit/96e64c106e9270340744373c41c82f73d3a1ba78))
+
+
+### Bug Fixes
+
+* support native tagging and alias links in Logseq DB ([517e30b](https://github.com/braladin/logseq-autolink-autotag/commit/517e30b796c0cd4bea559f9a62773879d06035ca))
+
 ## [1.3.1](https://github.com/braladin/logseq-autolink-autotag/compare/v1.3.0...v1.3.1) (2025-10-12)
 
 
